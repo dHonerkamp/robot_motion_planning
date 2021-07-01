@@ -16,6 +16,7 @@
 
 #include <omp.h>
 
+#include <tf/transform_listener.h>
 
 #ifndef RRT_STAR_H
 #define RRT_STAR_H

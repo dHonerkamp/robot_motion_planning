@@ -1,8 +1,8 @@
 #include <validity_checker/feasibility_checker.h>
 #include <tf/transform_listener.h>
 
-#include <moveit/move_group_interface/move_group.h>
-
+//#include <moveit/move_group_interface/move_group.h>
+#include <moveit/move_group_interface/move_group_interface.h>
 
 namespace state_feasibility_checker{
 
@@ -12,7 +12,8 @@ FeasibilityChecker::FeasibilityChecker(string robot_desciption_param, string pla
     m_planning_frame = getPlanningFrameFromSRDF(robot_desciption_param);
 
 	//Planning Scene Monitor (required for collision checks)
-    m_planning_scene_monitor =  boost::make_shared<planning_scene_monitor::PlanningSceneMonitor>(robot_desciption_param);
+//    planning_scene_monitor::PlanningSceneMonitorPtr m_planning_scene_monitor;
+    m_planning_scene_monitor.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_desciption_param));
 
     //Namespace prefix for robot
     m_ns_prefix_robot = ns_prefix;
@@ -71,7 +72,7 @@ FeasibilityChecker::FeasibilityChecker(boost::shared_ptr<kuka_motion_controller:
     m_planning_frame = getPlanningFrameFromSRDF(robot_desciption_param);
 
     //Planning Scene Monitor (required for collision checks)
-    m_planning_scene_monitor =  boost::make_shared<planning_scene_monitor::PlanningSceneMonitor>(robot_desciption_param);
+    m_planning_scene_monitor.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_desciption_param));
 
     //Namespace prefix for robot
     m_ns_prefix_robot = ns_prefix;

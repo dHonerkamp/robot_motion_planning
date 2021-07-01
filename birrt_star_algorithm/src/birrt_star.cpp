@@ -376,6 +376,7 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
     bool read_ok = readStartGoalConfig(start_goal_config_file,start_conf,goal_conf);
     if(read_ok == false)
     {
+        ROS_ERROR("start_goal_config_file: %s", start_goal_config_file);
         ROS_ERROR("File path to start and goal config is invalid!!!");
         ros::shutdown();
     }else{

@@ -20,6 +20,7 @@
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include <moveit_msgs/GetPlanningScene.h>
+#include <tf/tf.h>
 
 #ifndef FEASIBILITY_CHECKER_H
 #define FEASIBILITY_CHECKER_H

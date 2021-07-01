@@ -253,3 +253,7 @@ with:
    
 
 
+### PR2 (Daniel Honerkamp)
+- `roslaunch pr2_planning_model pr2.launch`
+- `roslaunch pr2_planning_model move_group.launch`
+- `rosrun birrt_star_algorithm birrt_star_pr2_base_node`
