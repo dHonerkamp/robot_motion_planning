@@ -1387,8 +1387,10 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
 
 
 //Run RRT* Planner given a target pose for the endeffector (last link along planning chain) w.r.t the /map frame
-bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, const vector<int> constraint_vec_goal_pose, const vector<pair<double,double> > target_coordinate_dev, const string planner_type, bool &planning_needed)
-{
+bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d &goal,
+                                                  const vector<int> constraint_vec_goal_pose,
+                                                  const vector <pair<double, double>> target_coordinate_dev,
+                                                  const string planner_type, bool &planning_needed) {
     //Set init_ok flag to default value
     bool init_ok = false;
 
@@ -1399,28 +1401,26 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
     vector<double> start_conf(m_num_joints);
 
     //Set zero config
-    for(int j = 0; j < m_num_joints ; j++)
+    for (int j = 0; j < m_num_joints; j++)
         start_conf[j] = 0.0;
 
     //Determine whether one of the revolute joints belong to the base (i.e. theta joint)
     // -> If yes, set the index where the manipulator joints start in the start_conf vector
     int offset_manipulator_joint_indices = 0;
-    if((m_num_joints_prismatic >= 2 && m_num_joints_revolute != 0) || m_num_joints_revolute > 7)
+    if ((m_num_joints_prismatic >= 2 && m_num_joints_revolute != 0) || m_num_joints_revolute > 7)
         offset_manipulator_joint_indices = 1;
 
     //There are revolute joints that belong to the manipulator
-    if(m_num_joints_revolute > 1)
-    {
+    if (m_num_joints_revolute > 1) {
         //WAIT FOR START CONFIG (get from /joint_states topic)
-        while(!m_lbr_joint_state_received)
-        {
+        while (!m_lbr_joint_state_received) {
             ROS_INFO("Current Manipulator Joint State not available yet");
 
             ros::spinOnce();
         }
 
-        int start_manipulator_joint_indices = m_num_joints_prismatic+offset_manipulator_joint_indices;
-        for(int j = start_manipulator_joint_indices; j < m_num_joints ; j++)
+        int start_manipulator_joint_indices = m_num_joints_prismatic + offset_manipulator_joint_indices;
+        for (int j = start_manipulator_joint_indices; j < m_num_joints; j++)
             start_conf[j] = m_lbr_joint_state[j - start_manipulator_joint_indices];
     }
 
@@ -1520,7 +1520,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
                 copy(folder_path.begin(), folder_path.end(), m_file_path_joint_trajectory);
                 m_file_path_joint_trajectory[folder_path.size()] = '\0'; // don't forget the terminating 0
                 //cout<<m_file_path_joint_trajectory<<endl;
-		//ROS_INFO_STREAM(m_file_path_joint_trajectory);	
+		//ROS_INFO_STREAM(m_file_path_joint_trajectory);
 
                 m_KDLRobotModel->writeTrajectoryToFile(m_result_joint_trajectory,m_file_path_joint_trajectory);
 
@@ -1539,8 +1539,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
     }
 
     //Planning is performed for manipulator
-    if(m_num_joints_prismatic == 0 && m_num_joints_revolute != 0)
-    {
+    if (m_num_joints_prismatic == 0 && m_num_joints_revolute != 0) {
         //------------ GOAL ENDEFFECTOR POSE (from function input) --------------
 
         //Get endeffector goal pose from input (in /map frame)
@@ -1548,7 +1547,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
 
         //Get rot_x, rot_y, rot_z
         Eigen::Matrix3d rot = goal.linear();
-        Eigen::Vector3d angles = rot.eulerAngles(0,1,2);
+        Eigen::Vector3d angles = rot.eulerAngles(0, 1, 2);
 
         //Set desired x,y,z,rotX,rotY,rotZ for endeffector (in /map frame)
         goal_x_map = goal.translation().x();
@@ -1572,7 +1571,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
             listener.lookupTransform("/map", m_ns_prefix_robot + "lbr_0_link", ros::Time(0), m_transform_map_to_base);
             m_transform_map_to_base_available = true;
         } catch (tf::TransformException ex) {
-            ROS_ERROR("%s",ex.what());
+            ROS_ERROR("%s", ex.what());
             ROS_ERROR("Transform /map to /base_link not available!");
             m_transform_map_to_base_available = false;
             return false;
@@ -1621,8 +1620,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
 
     //Planning is performed for mobile manipulator
     // -> Note: In this case the goal pose corresponds to the goal config -> thus no need to run controller to generate goal config
-    if(m_num_joints_prismatic >= 2 && m_num_joints_revolute > 1)
-    {
+    if (m_num_joints_prismatic >= 2 && m_num_joints_revolute > 1) {
         //------------ GOAL ENDEFFECTOR POSE (from function input) --------------
 
         //Get endeffector goal pose from input (in /map frame)
@@ -1630,7 +1628,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
 
         //Get rot_x, rot_y, rot_z
         Eigen::Matrix3d rot = goal.linear();
-        Eigen::Vector3d angles = rot.eulerAngles(0,1,2);
+        Eigen::Vector3d angles = rot.eulerAngles(0, 1, 2);
 
         //Set desired x,y,z,rotX,rotY,rotZ for endeffector (in /map frame)
         goal_x_map = goal.translation().x();
@@ -1654,7 +1652,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_pose(const Eigen::Affine3d& goal, c
             listener.lookupTransform("/map", m_ns_prefix_robot + "base_link", ros::Time(0), m_transform_map_to_base);
             m_transform_map_to_base_available = true;
         } catch (tf::TransformException ex) {
-            ROS_ERROR("%s",ex.what());
+            ROS_ERROR("%s", ex.what());
             ROS_ERROR("Transform /map to /base_link not available!");
             m_transform_map_to_base_available = false;
             return false;
