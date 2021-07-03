@@ -254,6 +254,30 @@ with:
 
 
 ### PR2 (Daniel Honerkamp)
-- `roslaunch pr2_planning_model pr2.launch`
-- `roslaunch pr2_planning_model move_group.launch`
-- `rosrun birrt_star_algorithm birrt_star_pr2_base_node`
+
+[comment]: <> (- `source /usr/share/gazebo/setup.sh && gazebo /home/honerkam/repos/modulation_rl/gazebo_world/worlds/modulation_tasks.world`)
+- `roslaunch pr2_planning_model pr2.launch world_name:=modulation_tasks.world`
+
+[comment]: <> (- `roslaunch pr2_planning_model move_group.launch`)
+- `rosrun birrt_star_algorithm birrt_star_pr2_base_arm_node`
+- `rosrun birrt_star_algorithm birrt_star_pr2_base_arm_node_DH`
+
+
+- `export GAZEBO_MODEL_PATH=/home/honerkam/repos/aws-robomaker-bookstore-world/models`
+
+
+
+### planning scene plugin
+- `cp /home/honerkam/repos/modulation_rl/gazebo_world/plugins/libgazebo_ros_moveit_planning_scene.so devel/lib/libgazebo_ros_moveit_planning_scene.so`
+- Add into robot urdf:
+  ```
+      <gazebo>
+      <plugin filename="libgazebo_ros_moveit_planning_scene.so" name="gazebo_ros_moveit_planning_scene">
+      <topicName>/my_planning_scene</topicName>
+      <sceneName>mytask</sceneName>
+      <robotName>pr2</robotName>
+      <updatePeriod>0.5</updatePeriod>
+      <publishFrameId>map</publishFrameId>
+      </plugin>
+      </gazebo>
+  ```

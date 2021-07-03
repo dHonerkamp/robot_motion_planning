@@ -128,7 +128,7 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     int getNumPrismaticJointsPlanningGroup();
     int getNumRevoluteJointsPlanningGroup();
 
-
+    vector<string> getJointNames(){ return m_RobotMotionController->getJointNames(); };
 
 
     private:

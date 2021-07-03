@@ -313,7 +313,7 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
 
         for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it)
         {
-            ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and" <<it->first.second.c_str());
+            ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and " <<it->first.second.c_str());
         }
 
     }
@@ -495,7 +495,7 @@ bool FeasibilityChecker::isConfigValid(KDL::JntArray config, bool print_contacts
 
         for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it)
         {
-          ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and" <<it->first.second.c_str());
+          ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and " <<it->first.second.c_str());
         }
 
         return isValid;
@@ -782,7 +782,7 @@ bool FeasibilityChecker::isEdgeValid(Edge tree_edge, bool print_contacts)
 
             for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it)
             {
-              ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and" <<it->first.second.c_str());
+              ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and " <<it->first.second.c_str());
             }
 
 
@@ -916,7 +916,7 @@ bool FeasibilityChecker::isEdgeValid(Edge tree_edge, int &last_valid_node_idx, b
 
             for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it)
             {
-              ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and" <<it->first.second.c_str());
+              ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and " <<it->first.second.c_str());
             }
 
 
