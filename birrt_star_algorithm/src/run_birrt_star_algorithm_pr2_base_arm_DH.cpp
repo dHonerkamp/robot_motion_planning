@@ -58,8 +58,8 @@ int main(int argc, char** argv)
 
     //Set planning scene
     // TODO: read out / pass in the map size (-x, x), (-y, y)
-    vector<double> size_x{10, 10};
-    vector<double> size_y{10, 10};
+    vector<double> size_x{-10, 10};
+    vector<double> size_y{-10, 10};
     planner.setPlanningSceneInfo(size_x, size_y, "my_planning_scene", true);
 
     //Set default values
@@ -112,12 +112,12 @@ int main(int argc, char** argv)
 
     //Set EE Start endeffector pose and constraint variables
     vector<double> start_ee_pose(6);
-    start_ee_pose[0] = 1.5;  //3.6;  //X
+    start_ee_pose[0] = 1.5;  //X
     start_ee_pose[1] = 8.0;  //Y
-    start_ee_pose[2] = 0.9;//obj_pos[2];        //Z
-    start_ee_pose[3] = -1.57;    //RotX
-    start_ee_pose[4] = 0.0;    //RotY
-    start_ee_pose[5] = 0.0;    //RotZ
+    start_ee_pose[2] = 1.3;  //Z
+    start_ee_pose[3] = 0.0;  //RotX
+    start_ee_pose[4] = 0.0;  //RotY
+    start_ee_pose[5] = 1.57;  //RotZ
     vector<int> constraint_vec_start_pose(6); // (0 = don't care, 1 = constraint)
     constraint_vec_start_pose[0] = 1; //X
     constraint_vec_start_pose[1] = 1; //Y
@@ -128,19 +128,19 @@ int main(int argc, char** argv)
 
     //Set EE Goal endeffector pose and constraint variables
     vector<double> ee_goal_pose(6);
-    ee_goal_pose[0] = 1.5;       //X
-    ee_goal_pose[1] = 3.0;   //Y
-    ee_goal_pose[2] = 0.9;                   //Z
-    ee_goal_pose[3] = 1.57;    //RotX
-    ee_goal_pose[4] = 0.0;    //RotY
-    ee_goal_pose[5] = 1.57;    //RotZ
+    ee_goal_pose[0] = 0.0;   //X
+    ee_goal_pose[1] = 0.0;   //Y
+    ee_goal_pose[2] = 0.9;   //Z
+    ee_goal_pose[3] = 1.57;  //RotX
+    ee_goal_pose[4] = 0.0;   //RotY
+    ee_goal_pose[5] = 1.57;  //RotZ
     vector<int> constraint_vec_goal_pose(6);  // (0 = don't care, 1 = constraint)
     constraint_vec_goal_pose[0] = 1; //X
     constraint_vec_goal_pose[1] = 1; //Y
     constraint_vec_goal_pose[2] = 1; //Z
-    constraint_vec_goal_pose[3] = 0; //RotX
-    constraint_vec_goal_pose[4] = 0; //RotY
-    constraint_vec_goal_pose[5] = 0; //RotZ
+    constraint_vec_goal_pose[3] = 1; //RotX
+    constraint_vec_goal_pose[4] = 1; //RotY
+    constraint_vec_goal_pose[5] = 1; //RotZ
 
     //Permitted displacement for ee coordinates w.r.t desired target frame
     vector<pair<double,double> > target_coordinate_dev(6);
@@ -158,30 +158,30 @@ int main(int argc, char** argv)
     target_coordinate_dev[5].second = 0.05;     //positive Zrot deviation
 
 
-    //Set constraint parameters / permitted axes for displacement (x,y,z,roll,pitch,yaw) relative to start ee pose during planning
-    //  1 -> constraint
-    //  0 -> unconstraint
-    vector<int> constraint_vector(6);
-    constraint_vector[0] = 1.0; //X translation
-    constraint_vector[1] = 0.0; //Y translation
-    constraint_vector[2] = 0.0; //Z translation
-    constraint_vector[3] = 0.0; //X rotation
-    constraint_vector[4] = 1.0; //Y rotation
-    constraint_vector[5] = 1.0; //Z rotation
-    //Permitted displacement for ee coordinates w.r.t task frame
-    vector<pair<double,double> > permitted_coordinate_dev(6);
-    permitted_coordinate_dev[0].first  = 0.0;    //negative X deviation [m]
-    permitted_coordinate_dev[0].second = 0.0;   //positive X deviation
-    permitted_coordinate_dev[1].first  = 0.0;    //negative Y deviation
-    permitted_coordinate_dev[1].second = 0.0;   //positive Y deviation
-    permitted_coordinate_dev[2].first  = 0.0;    //negative Z deviation
-    permitted_coordinate_dev[2].second = 0.0;   //positive Z deviation
-    permitted_coordinate_dev[3].first  = 0.0;    //negative Xrot deviation [rad]
-    permitted_coordinate_dev[3].second = 0.0;   //positive Xrot deviation
-    permitted_coordinate_dev[4].first  = -0.52;    //negative Yrot deviation
-    permitted_coordinate_dev[4].second = 0.0;   //positive Yrot deviation
-    permitted_coordinate_dev[5].first  = 0.0;    //negative Zrot deviation
-    permitted_coordinate_dev[5].second = 0.0;   //positive Zrot deviation
+//    //Set constraint parameters / permitted axes for displacement (x,y,z,roll,pitch,yaw) relative to start ee pose during planning
+//    //  1 -> constraint
+//    //  0 -> unconstraint
+//    vector<int> constraint_vector(6);
+//    constraint_vector[0] = 1.0; //X translation
+//    constraint_vector[1] = 0.0; //Y translation
+//    constraint_vector[2] = 0.0; //Z translation
+//    constraint_vector[3] = 0.0; //X rotation
+//    constraint_vector[4] = 1.0; //Y rotation
+//    constraint_vector[5] = 1.0; //Z rotation
+//    //Permitted displacement for ee coordinates w.r.t task frame
+//    vector<pair<double,double> > permitted_coordinate_dev(6);
+//    permitted_coordinate_dev[0].first  = 0.0;    //negative X deviation [m]
+//    permitted_coordinate_dev[0].second = 0.0;   //positive X deviation
+//    permitted_coordinate_dev[1].first  = 0.0;    //negative Y deviation
+//    permitted_coordinate_dev[1].second = 0.0;   //positive Y deviation
+//    permitted_coordinate_dev[2].first  = 0.0;    //negative Z deviation
+//    permitted_coordinate_dev[2].second = 0.0;   //positive Z deviation
+//    permitted_coordinate_dev[3].first  = 0.0;    //negative Xrot deviation [rad]
+//    permitted_coordinate_dev[3].second = 0.0;   //positive Xrot deviation
+//    permitted_coordinate_dev[4].first  = -0.52;    //negative Yrot deviation
+//    permitted_coordinate_dev[4].second = 0.0;   //positive Yrot deviation
+//    permitted_coordinate_dev[5].first  = 0.0;    //negative Zrot deviation
+//    permitted_coordinate_dev[5].second = 0.0;   //positive Zrot deviation
 
     //Set edge cost variable weights (to apply motion preferences)
     vector<double> edge_cost_weights(13);
@@ -248,6 +248,11 @@ int main(int argc, char** argv)
     robot_state::RobotState state(psm->getRobotModel());
 
     vector<string> joint_names = planner.getJointNames();
+
+    for (int i = 0; i < joint_names.size(); i ++) {
+        cout<<joint_names[i]<<std::endl;
+    }
+
     int step = 5;
 
     while (true) {
@@ -260,8 +265,9 @@ int main(int argc, char** argv)
             }
 
             publishRobotState(nh, scene, state, ns_prefix_robot, nvalues);
-            ros::Duration(0.01).sleep();
+            ros::Duration(0.05).sleep();
         }
+        ros::Duration(0.5).sleep();
     }
 
 

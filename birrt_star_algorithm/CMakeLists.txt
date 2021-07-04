@@ -182,6 +182,7 @@ add_executable(birrt_star_robotino_node src/run_birrt_star_algorithm_robotino.cp
 #Executable for running RRT-star Algorithm (PR2)
 add_executable(birrt_star_pr2_base_node src/run_birrt_star_algorithm_pr2_base.cpp)
 add_executable(birrt_star_pr2_base_arm_node src/run_birrt_star_algorithm_pr2_base_arm.cpp)
+add_executable(birrt_star_pr2_base_arm_node_DH src/run_birrt_star_algorithm_pr2_base_arm_DH.cpp)
 
 
 ## Add cmake target dependencies of the executable/library
@@ -199,6 +200,7 @@ target_link_libraries(birrt_star_robotino_node ${PROJECT_NAME} ${catkin_LIBRARIE
 
 target_link_libraries(birrt_star_pr2_base_node ${PROJECT_NAME} ${catkin_LIBRARIES})
 target_link_libraries(birrt_star_pr2_base_arm_node ${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(birrt_star_pr2_base_arm_node_DH ${PROJECT_NAME} ${catkin_LIBRARIES})
 
 
 
