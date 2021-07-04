@@ -281,12 +281,12 @@ BiRRTstarPlanner::BiRRTstarPlanner(string planning_group)
     m_nh.param("solution_path_base_marker_scale", m_solution_path_base_marker_scale, 0.01);
 
 
-    //Tree Edges Visualization Topic for START Tree
-    m_start_tree_edge_pub = m_nh.advertise<visualization_msgs::MarkerArray>("tree_edges_marker", 100);
+    m_marker_pub = m_nh.advertise<visualization_msgs::Marker>("birrt_star_markers", 100);
+    m_markerarray_pub = m_nh.advertise<visualization_msgs::MarkerArray>("birrt_star_markerarrays", 100);
 
     //Set up properties for add nodes marker
     m_start_tree_add_nodes_marker.header.frame_id = m_base_link_name;
-    m_start_tree_add_nodes_marker.ns = "sphere";
+    m_start_tree_add_nodes_marker.ns = "start_tree_nodes";
     m_start_tree_add_nodes_marker.action = visualization_msgs::Marker::ADD;
     //Set Marker Type
     m_start_tree_add_nodes_marker.type = visualization_msgs::Marker::SPHERE_LIST;
@@ -302,15 +302,11 @@ BiRRTstarPlanner::BiRRTstarPlanner(string planning_group)
     m_start_tree_add_nodes_marker.color.a = 1.0;
 
     //Tree Nodes Visualization Topic for START Tree
-    m_start_tree_node_pub = m_nh.advertise<visualization_msgs::Marker>("tree_nodes_marker", 100);
-
-
     //Tree Edges Visualization Topic for GOAL Tree
-    m_goal_tree_edge_pub = m_nh.advertise<visualization_msgs::MarkerArray>("tree_edges_marker2", 100);
 
     //Set up properties for add nodes marker
     m_goal_tree_add_nodes_marker.header.frame_id = m_base_link_name;
-    m_goal_tree_add_nodes_marker.ns = "sphere";
+    m_goal_tree_add_nodes_marker.ns = "goal_tree_nodes";
     m_goal_tree_add_nodes_marker.action = visualization_msgs::Marker::ADD;
     //Set Marker Type
     m_goal_tree_add_nodes_marker.type = visualization_msgs::Marker::SPHERE_LIST;
@@ -325,21 +321,18 @@ BiRRTstarPlanner::BiRRTstarPlanner(string planning_group)
     m_goal_tree_add_nodes_marker.color.b = 0.0;
     m_goal_tree_add_nodes_marker.color.a = 1.0;
 
-    //Tree Nodes Visualization Topic for GOAL Tree
-    m_goal_tree_node_pub = m_nh.advertise<visualization_msgs::Marker>("tree_nodes_marker2", 100);
 
+//    // clear all existing markers
+//    visualization_msgs::Marker marker;
+//    marker.header.frame_id = m_base_link_name;
+//    marker.header.stamp = ros::Time::now();
+//    marker.action = visualization_msgs::Marker::DELETEALL;
+//    m_marker_pub.publish(marker);
+//
+//    visualization_msgs::MarkerArray markers;
+//    markers.markers.push_back(marker);
+//    m_markerarray_pub.publish(markers);
 
-    //Tree Terminal Nodes Visualization Topic
-    m_tree_terminal_nodes_pub = m_nh.advertise<visualization_msgs::MarkerArray>("start_goal_node_marker", 100);
-
-    //Solution path publisher (for ee trajectory)
-    m_ee_solution_path_pub = m_nh.advertise<visualization_msgs::Marker>("ee_tree_solution_path", 100);
-
-    //Solution path publisher (for base trajectory)
-    m_base_solution_path_pub = m_nh.advertise<visualization_msgs::Marker>("base_tree_solution_path", 100);
-
-    //Publisher for prismatic C-Space ellipse (informed subset for base)
-    m_base_ellipse_pub = m_nh.advertise<visualization_msgs::Marker>("base_ellipse", 100);
 
     //Subscriber to get current joint state from real lbr arm
     m_lbr_joint_state_sub = m_nh.subscribe(m_ns_prefix_robot + "joint_states", 1000, &BiRRTstarPlanner::callback_lbr_joint_states, this);
@@ -534,7 +527,7 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
 
 
     //Publish start and goal node
-    m_tree_terminal_nodes_pub.publish(m_terminal_nodes_marker_array_msg);
+    m_markerarray_pub.publish(m_terminal_nodes_marker_array_msg);
 
 
     //Save start and goal ee_pose
@@ -548,16 +541,16 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
 
     //Empty array of nodes
     m_start_tree_add_nodes_marker.points.empty();
-    m_start_tree_node_pub.publish(m_start_tree_add_nodes_marker);
+    m_marker_pub.publish(m_start_tree_add_nodes_marker);
     m_goal_tree_add_nodes_marker.points.empty();
-    m_goal_tree_node_pub.publish(m_goal_tree_add_nodes_marker);
+    m_marker_pub.publish(m_goal_tree_add_nodes_marker);
 
     //Empty array of edges
     //m_start_tree_add_edge_marker_array_msg.markers.empty();
     m_start_tree_add_edge_marker_array_msg.markers.clear();
-    m_start_tree_edge_pub.publish(m_start_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_start_tree_add_edge_marker_array_msg);
     m_goal_tree_add_edge_marker_array_msg.markers.clear();
-    m_goal_tree_edge_pub.publish(m_goal_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_goal_tree_add_edge_marker_array_msg);
 
 
     //Delete solution path
@@ -565,7 +558,7 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
     empty_solution_path_marker.id = 1;
     empty_solution_path_marker.header.stamp = ros::Time::now();
     empty_solution_path_marker.header.frame_id = m_base_link_name;
-    empty_solution_path_marker.ns = "solution";
+    empty_solution_path_marker.ns = "ee_solution";
     empty_solution_path_marker.action = visualization_msgs::Marker::DELETE;
     empty_solution_path_marker.type = visualization_msgs::Marker::LINE_STRIP;
     empty_solution_path_marker.scale.x = m_solution_path_ee_marker_scale;
@@ -574,7 +567,7 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
     empty_solution_path_marker.color.g = 1.0;
     empty_solution_path_marker.color.b = 1.0;
     empty_solution_path_marker.color.a = 1.0;
-    m_ee_solution_path_pub.publish(empty_solution_path_marker);
+    m_marker_pub.publish(empty_solution_path_marker);
 
 
     //Initialization of Variables required for Ellipse Sampling
@@ -774,7 +767,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
 
 
     //Publish start and goal node
-    m_tree_terminal_nodes_pub.publish(m_terminal_nodes_marker_array_msg);
+    m_markerarray_pub.publish(m_terminal_nodes_marker_array_msg);
 
 
     //Save start and goal ee_pose
@@ -788,16 +781,16 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
 
     //Empty array of nodes
     m_start_tree_add_nodes_marker.points.empty();
-    m_start_tree_node_pub.publish(m_start_tree_add_nodes_marker);
+    m_marker_pub.publish(m_start_tree_add_nodes_marker);
     m_goal_tree_add_nodes_marker.points.empty();
-    m_goal_tree_node_pub.publish(m_goal_tree_add_nodes_marker);
+    m_marker_pub.publish(m_goal_tree_add_nodes_marker);
 
     //Empty array of edges
     //m_start_tree_add_edge_marker_array_msg.markers.empty();
     m_start_tree_add_edge_marker_array_msg.markers.clear();
-    m_start_tree_edge_pub.publish(m_start_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_start_tree_add_edge_marker_array_msg);
     m_goal_tree_add_edge_marker_array_msg.markers.clear();
-    m_goal_tree_edge_pub.publish(m_goal_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_goal_tree_add_edge_marker_array_msg);
 
 
     //Delete solution path
@@ -805,7 +798,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
     empty_solution_path_marker.id = 1;
     empty_solution_path_marker.header.stamp = ros::Time::now();
     empty_solution_path_marker.header.frame_id = m_base_link_name;
-    empty_solution_path_marker.ns = "solution";
+    empty_solution_path_marker.ns = "ee_solution";
     empty_solution_path_marker.action = visualization_msgs::Marker::DELETE;
     empty_solution_path_marker.type = visualization_msgs::Marker::LINE_STRIP;
     empty_solution_path_marker.scale.x = m_solution_path_ee_marker_scale;
@@ -814,7 +807,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
     empty_solution_path_marker.color.g = 1.0;
     empty_solution_path_marker.color.b = 1.0;
     empty_solution_path_marker.color.a = 1.0;
-    m_ee_solution_path_pub.publish(empty_solution_path_marker);
+    m_marker_pub.publish(empty_solution_path_marker);
 
 
     //Initialization of Variables required for Ellipse Sampling
@@ -1036,7 +1029,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
 
 
     //Publish start and goal node
-    m_tree_terminal_nodes_pub.publish(m_terminal_nodes_marker_array_msg);
+    m_markerarray_pub.publish(m_terminal_nodes_marker_array_msg);
 
 
     //Save start and goal ee_pose
@@ -1050,16 +1043,16 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
 
     //Empty array of nodes
     m_start_tree_add_nodes_marker.points.empty();
-    m_start_tree_node_pub.publish(m_start_tree_add_nodes_marker);
+    m_marker_pub.publish(m_start_tree_add_nodes_marker);
     m_goal_tree_add_nodes_marker.points.empty();
-    m_goal_tree_node_pub.publish(m_goal_tree_add_nodes_marker);
+    m_marker_pub.publish(m_goal_tree_add_nodes_marker);
 
     //Empty array of edges
     //m_start_tree_add_edge_marker_array_msg.markers.empty();
     m_start_tree_add_edge_marker_array_msg.markers.clear();
-    m_start_tree_edge_pub.publish(m_start_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_start_tree_add_edge_marker_array_msg);
     m_goal_tree_add_edge_marker_array_msg.markers.clear();
-    m_goal_tree_edge_pub.publish(m_goal_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_goal_tree_add_edge_marker_array_msg);
 
 
     //Delete solution path
@@ -1067,7 +1060,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     empty_solution_path_marker.id = 1;
     empty_solution_path_marker.header.stamp = ros::Time::now();
     empty_solution_path_marker.header.frame_id = m_base_link_name;
-    empty_solution_path_marker.ns = "solution";
+    empty_solution_path_marker.ns = "ee_solution";
     empty_solution_path_marker.action = visualization_msgs::Marker::DELETE;
     empty_solution_path_marker.type = visualization_msgs::Marker::LINE_STRIP;
     empty_solution_path_marker.scale.x = m_solution_path_ee_marker_scale;
@@ -1076,7 +1069,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     empty_solution_path_marker.color.g = 1.0;
     empty_solution_path_marker.color.b = 1.0;
     empty_solution_path_marker.color.a = 1.0;
-    m_ee_solution_path_pub.publish(empty_solution_path_marker);
+    m_marker_pub.publish(empty_solution_path_marker);
 
 
     //Initialization of Variables required for Ellipse Sampling
@@ -1298,7 +1291,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
 
 
     //Publish start and goal node
-    m_tree_terminal_nodes_pub.publish(m_terminal_nodes_marker_array_msg);
+    m_markerarray_pub.publish(m_terminal_nodes_marker_array_msg);
 
 
     //Save start and goal ee_pose
@@ -1312,16 +1305,16 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
 
     //Empty array of nodes
     m_start_tree_add_nodes_marker.points.empty();
-    m_start_tree_node_pub.publish(m_start_tree_add_nodes_marker);
+    m_marker_pub.publish(m_start_tree_add_nodes_marker);
     m_goal_tree_add_nodes_marker.points.empty();
-    m_goal_tree_node_pub.publish(m_goal_tree_add_nodes_marker);
+    m_marker_pub.publish(m_goal_tree_add_nodes_marker);
 
     //Empty array of edges
     //m_start_tree_add_edge_marker_array_msg.markers.empty();
     m_start_tree_add_edge_marker_array_msg.markers.clear();
-    m_start_tree_edge_pub.publish(m_start_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_start_tree_add_edge_marker_array_msg);
     m_goal_tree_add_edge_marker_array_msg.markers.clear();
-    m_goal_tree_edge_pub.publish(m_goal_tree_add_edge_marker_array_msg);
+    m_markerarray_pub.publish(m_goal_tree_add_edge_marker_array_msg);
 
 
     //Delete solution path
@@ -1329,7 +1322,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
     empty_solution_path_marker.id = 1;
     empty_solution_path_marker.header.stamp = ros::Time::now();
     empty_solution_path_marker.header.frame_id = m_base_link_name;
-    empty_solution_path_marker.ns = "solution";
+    empty_solution_path_marker.ns = "ee_solution";
     empty_solution_path_marker.action = visualization_msgs::Marker::DELETE;
     empty_solution_path_marker.type = visualization_msgs::Marker::LINE_STRIP;
     empty_solution_path_marker.scale.x = m_solution_path_ee_marker_scale;
@@ -1338,7 +1331,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
     empty_solution_path_marker.color.g = 1.0;
     empty_solution_path_marker.color.b = 1.0;
     empty_solution_path_marker.color.a = 1.0;
-    m_ee_solution_path_pub.publish(empty_solution_path_marker);
+    m_marker_pub.publish(empty_solution_path_marker);
 
 
     //Initialization of Variables required for Ellipse Sampling
@@ -1802,7 +1795,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_config(const vector<double> goal, c
             ROS_INFO_STREAM("Goal pose in base frame");
             //cout << goal_pose_base.matrix() << endl << endl;
             ROS_INFO_STREAM(goal_conf[0]<<"  "<<goal_conf[1]<<"  "<<goal_conf[2]);
-            
+
 
             //Check whether planning group includes only the revolute joint of the mobile base
             // -> If yes, check whether the base is already at the correct pose or planning is required
@@ -1864,7 +1857,7 @@ bool BiRRTstarPlanner::init_planner_map_goal_config(const vector<double> goal, c
 
     //------------ FEASIBILITY CHECKER INITIALIZATION --------------
     //m_FeasibilityChecker->update_map_to_robot_transform();
-    
+
 
     return init_ok;
 }
@@ -2270,15 +2263,15 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
         if(show_tree_vis == true)
         {
             //Publish tree nodes
-            m_start_tree_node_pub.publish(m_start_tree_add_nodes_marker);
-            m_goal_tree_node_pub.publish(m_goal_tree_add_nodes_marker);
+            m_marker_pub.publish(m_start_tree_add_nodes_marker);
+            m_marker_pub.publish(m_goal_tree_add_nodes_marker);
 
             //Publish tree edges to be added
-            m_start_tree_edge_pub.publish(m_start_tree_add_edge_marker_array_msg);
-            m_goal_tree_edge_pub.publish(m_goal_tree_add_edge_marker_array_msg);
+            m_markerarray_pub.publish(m_start_tree_add_edge_marker_array_msg);
+            m_markerarray_pub.publish(m_goal_tree_add_edge_marker_array_msg);
 
             //Publish tree edges to be added to be removed
-            //m_start_tree_edge_pub.publish(remove_edge_marker_array_msg_);
+            //m_markerarray_pub.publish(remove_edge_marker_array_msg_);
 
             //Sleep to better see tree construction
             ros::Duration(iter_sleep).sleep();
@@ -2296,6 +2289,7 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
 
         //Set executed planning time to "planning_time_elapsed"
         m_executed_planner_time = planning_time_elapsed;
+        ROS_INFO("m_executed_planner_time: %f", m_executed_planner_time);
 
         double elapsed_time_percent = (planning_time_elapsed/m_max_planner_time)*100.0;
         double elapsed_time_percent_output = elapsed_time_percent < 100.0 ? elapsed_time_percent : 100.0;
@@ -5460,7 +5454,8 @@ KDL::JntArray BiRRTstarPlanner::sampleJointConfigfromEllipse_JntArray()
             //Sampled Base position is ok if...
             // 1) The base position is within the confined environment borders
             // 2) The environment is not confined (i.e. infinite space for maneuvering available)
-            if( ( copy_rand_conf_array(0) < m_env_size_x[1] && copy_rand_conf_array(0) > m_env_size_x[0] && copy_rand_conf_array(1) < m_env_size_y[1] && copy_rand_conf_array(1) > m_env_size_y[0] ) || (m_env_size_x[0] == 0.0 && m_env_size_x[1] == 0.0 && m_env_size_y[0] == 0.0 && m_env_size_y[1] == 0.0) )
+            if( ( copy_rand_conf_array(0) < m_env_size_x[1] && copy_rand_conf_array(0) > m_env_size_x[0] && copy_rand_conf_array(1) < m_env_size_y[1] && copy_rand_conf_array(1) > m_env_size_y[0] )
+                || (m_env_size_x[0] == 0.0 && m_env_size_x[1] == 0.0 && m_env_size_y[0] == 0.0 && m_env_size_y[1] == 0.0) )
                 inside_environment = true;
             else
                 inside_environment = false;
@@ -8092,7 +8087,7 @@ void BiRRTstarPlanner::add_tree_edge_vis(string tree_name, Edge new_edge)
     //Set up properties for add edge marker
     add_edge_marker_.header.stamp = ros::Time::now();
     add_edge_marker_.header.frame_id = m_base_link_name;
-    add_edge_marker_.ns = "line_list";
+    // add_edge_marker_.ns = "line_list";
     add_edge_marker_.action = visualization_msgs::Marker::ADD;
     add_edge_marker_.pose.orientation.w = 1.0;
     //Set Marker Type
@@ -8136,6 +8131,7 @@ void BiRRTstarPlanner::add_tree_edge_vis(string tree_name, Edge new_edge)
         add_edge_marker_.color.g = 0.0;
         add_edge_marker_.color.b = 1.0;
         add_edge_marker_.color.a = 1.0;
+        add_edge_marker_.ns = "start_tree_edges";
 
         m_start_tree_add_edge_marker_array_msg.markers.insert(m_start_tree_add_edge_marker_array_msg.markers.begin() + new_edge.edge_id, add_edge_marker_);
     }
@@ -8146,6 +8142,7 @@ void BiRRTstarPlanner::add_tree_edge_vis(string tree_name, Edge new_edge)
         add_edge_marker_.color.g = 0.0;
         add_edge_marker_.color.b = 0.0;
         add_edge_marker_.color.a = 1.0;
+        add_edge_marker_.ns = "end_tree_edges";
 
         m_goal_tree_add_edge_marker_array_msg.markers.insert(m_goal_tree_add_edge_marker_array_msg.markers.begin() + new_edge.edge_id, add_edge_marker_);
     }
@@ -8374,7 +8371,7 @@ void BiRRTstarPlanner::drawBaseEllipse()
         base_ellipse_marker.points.push_back(first_point);
 
         //Publish ellipse
-        m_base_ellipse_pub.publish(base_ellipse_marker);
+        m_marker_pub.publish(base_ellipse_marker);
     }
 }
 
@@ -8573,10 +8570,10 @@ void BiRRTstarPlanner::showCurrentSolutionPath(string connected_tree_name, Node 
     //cout<<endl;
 
     //Publish endeffector solution path
-    m_ee_solution_path_pub.publish(ee_solution_path_marker); //Show line strip representing solution path
+    m_marker_pub.publish(ee_solution_path_marker); //Show line strip representing solution path
 
     //Publish base solution path
-    m_base_solution_path_pub.publish(base_solution_path_marker); //Show line strip representing solution path
+    m_marker_pub.publish(base_solution_path_marker); //Show line strip representing solution path
 
 }
 

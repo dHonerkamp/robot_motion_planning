@@ -488,22 +488,8 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
 
 
     //Tree edges and node Publisher
-    ros::Publisher m_start_tree_edge_pub;
-    ros::Publisher m_start_tree_node_pub;
-    ros::Publisher m_goal_tree_edge_pub;
-    ros::Publisher m_goal_tree_node_pub;
-
-    //Publisher for terminal nodes (start and goal node)
-    ros::Publisher m_tree_terminal_nodes_pub;
-
-    //Solution path publisher (for ee trajectory)
-    ros::Publisher m_ee_solution_path_pub;
-    //Solution path publisher (for base trajectory)
-    ros::Publisher m_base_solution_path_pub;
-
-    //Publisher for prismatic C-Space ellipse (informed subset for base)
-    ros::Publisher m_base_ellipse_pub;
-
+    ros::Publisher m_markerarray_pub;
+    ros::Publisher m_marker_pub;
 
     //Functions for nodes and edges
     void add_tree_edge_vis(string tree_name,Edge new_edge);
