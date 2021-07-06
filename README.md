@@ -262,8 +262,11 @@ with:
 - `rosrun birrt_star_algorithm birrt_star_pr2_base_arm_node`
 - `rosrun birrt_star_algorithm birrt_star_pr2_base_arm_node_DH`
 
+- link the aws maps into the workspace. Maybe also have to clear the GAZEBO_MODEL_PATH?
+  
+    ln -s /home/honerkam/repos/aws-robomaker-bookstore-world src/aws-robomaker-bookstore-world
+    ln -s /home/honerkam/repos/aws-robomaker-small-house-world src/aws-robomaker-small-house-world
 
-- `export GAZEBO_MODEL_PATH=/home/honerkam/repos/aws-robomaker-bookstore-world/models`
 
 
 

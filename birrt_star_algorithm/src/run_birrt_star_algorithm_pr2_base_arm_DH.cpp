@@ -86,6 +86,7 @@ void visualiseResult(ros::NodeHandle nh, birrt_star_motion_planning::BiRRTstarPl
 
 }
 
+// TODO: option to pass in full initial robot configuration (should already exist, just replace the reading from a txt file)
 void runScenario(ros::NodeHandle &nh,
                  const string &planning_group,
                  const vector<double> &env_size_x,
@@ -215,8 +216,23 @@ int main(int argc, char** argv)
 
     //Set EE Start endeffector pose and constraint variables
     vector<double> start_ee_pose(6);
-    start_ee_pose[0] = 1.5;  //X
-    start_ee_pose[1] = 8.0;  //Y
+// modulation_tasks.world
+//    start_ee_pose[0] = 1.5;  //X
+//    start_ee_pose[1] = 8.0;  //Y
+//    start_ee_pose[2] = 1.3;  //Z
+//    start_ee_pose[3] = 0.0;  //RotX
+//    start_ee_pose[4] = 0.0;  //RotY
+//    start_ee_pose[5] = 1.57;  //RotZ
+// aws apartment
+//    start_ee_pose[0] = 6.5;  //X
+//    start_ee_pose[1] = -3.0;  //Y
+//    start_ee_pose[2] = 1.3;  //Z
+//    start_ee_pose[3] = 0.0;  //RotX
+//    start_ee_pose[4] = 0.0;  //RotY
+//    start_ee_pose[5] = 1.57;  //RotZ
+// aws bookstore
+    start_ee_pose[0] = -3.0;  //X
+    start_ee_pose[1] = 5.0;  //Y
     start_ee_pose[2] = 1.3;  //Z
     start_ee_pose[3] = 0.0;  //RotX
     start_ee_pose[4] = 0.0;  //RotY
@@ -231,9 +247,21 @@ int main(int argc, char** argv)
 
     //Set EE Goal endeffector pose and constraint variables
     vector<double> ee_goal_pose(6);
-    ee_goal_pose[0] = 0.0;   //X
-    ee_goal_pose[1] = 0.0;   //Y
-    ee_goal_pose[2] = 0.9;   //Z
+//    ee_goal_pose[0] = 0.0;   //X
+//    ee_goal_pose[1] = 0.0;   //Y
+//    ee_goal_pose[2] = 0.9;   //Z
+//    ee_goal_pose[3] = 1.57;  //RotX
+//    ee_goal_pose[4] = 0.0;   //RotY
+//    ee_goal_pose[5] = 1.57;  //RotZ
+//    ee_goal_pose[0] = -5.0;   //X
+//    ee_goal_pose[1] = -3.5;   //Y
+//    ee_goal_pose[2] = 0.9;   //Z
+//    ee_goal_pose[3] = 1.57;  //RotX
+//    ee_goal_pose[4] = 0.0;   //RotY
+//    ee_goal_pose[5] = 1.57;  //RotZ
+    ee_goal_pose[0] = 1.0;   //X
+    ee_goal_pose[1] = -3.0;   //Y
+    ee_goal_pose[2] = 0.4;   //Z
     ee_goal_pose[3] = 1.57;  //RotX
     ee_goal_pose[4] = 0.0;   //RotY
     ee_goal_pose[5] = 1.57;  //RotZ
