@@ -40,6 +40,111 @@ void publishRobotState(ros::NodeHandle nh,
     scene_pub.publish(psmsg);
 }
 
+void visualiseResult(ros::NodeHandle nh, birrt_star_motion_planning::BiRRTstarPlanner planner){
+    vector<vector<double>> joint_trajectory = planner.getJointTrajectory();
+    vector<vector<double>> ee_trajectory = planner.getEndeffectorTrajectory();
+
+    //Get curent planning scene and robot state
+    string robot_description_robot;
+    nh.param("robot_description_robot", robot_description_robot, std::string("robot_description"));
+    string ns_prefix_robot;
+    nh.param("ns_prefix_robot", ns_prefix_robot, std::string(""));
+    string planning_scene_service_ns = ns_prefix_robot + "get_planning_scene";
+
+    planning_scene_monitor::PlanningSceneMonitorPtr psm;
+    psm.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_description_robot));
+    psm->requestPlanningSceneState(planning_scene_service_ns);
+    planning_scene_monitor::LockedPlanningSceneRW ps(psm);
+    ps->getCurrentStateNonConst().update();
+    //if you want to modify it
+    planning_scene::PlanningScenePtr scene = ps->diff();
+    scene->decoupleParent();
+    robot_state::RobotState state(psm->getRobotModel());
+
+    vector<string> joint_names = planner.getJointNames();
+
+    for (int i = 0; i < joint_names.size(); i ++) {
+        cout<<joint_names[i]<<std::endl;
+    }
+
+    int step = 5;
+
+    while (true) {
+        for (int i = 0; i < joint_trajectory.size(); i += step) {
+            vector<double> joint_values = joint_trajectory[i];
+            map<string, double> nvalues;
+            assert(joint_names.size() == joint_values.size());
+            for (int ii = 0; ii < joint_names.size(); ++ii) {
+                nvalues[joint_names[ii]] = joint_values[ii];
+            }
+
+            publishRobotState(nh, scene, state, ns_prefix_robot, nvalues);
+            ros::Duration(0.05).sleep();
+        }
+        ros::Duration(0.5).sleep();
+    }
+
+}
+
+void runScenario(ros::NodeHandle &nh,
+                 const string &planning_group,
+                 const vector<double> &env_size_x,
+                 const vector<double> &env_size_y,
+                 const vector<double> &start_ee_pose,
+                 const vector<int> &constraint_vec_start_pose,
+                 const vector<double> &ee_goal_pose,
+                 const vector<int> &constraint_vec_goal_pose,
+                 const vector <pair<double, double>> &target_coordinate_dev,
+                 const int &search_space = 1,
+                 const int &max_iterations_time = 200,
+                 const bool &max_iterations_or_time = 1,
+                 const bool &rviz_show_tree = 1,
+                 const double &iteration_sleep_time = 0.0) {
+    // -------------------- Motion Planning Execution ----------------------------
+    if(search_space == 0)
+        cout<<"Control-based Planner running......!"<<endl;
+    else if (search_space == 1)
+        cout<<"C-Space Planner running......!"<<endl;
+    else
+        ROS_ERROR("PLANNER NOT KNOWN!!!");
+
+    birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
+    planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
+
+    //Initialize planner (with start and ee goal pose)
+    planner.init_planner(start_ee_pose, constraint_vec_start_pose, ee_goal_pose, constraint_vec_goal_pose, target_coordinate_dev, search_space);
+    //Activate the constraint
+    // -> Syntax: planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, bool task_pos_global, bool task_orient_global);
+    // bool task_pos_global -> indicates whether task frame position is expressed w.r.t near node ee pos or always w.r.t start frame ee pos
+    // bool task_orient_global -> indicates whether task frame orientation is expressed w.r.t near node ee orientation or always w.r.t start frame ee orientation
+    //planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, true, true);
+
+    //Set edge cost variable weights (to apply motion preferences)
+    vector<double> edge_cost_weights(13);
+    edge_cost_weights[0] = 1.0; //base_x
+    edge_cost_weights[1] = 1.0; //base_y
+    edge_cost_weights[2] = 1.0; //base_theta
+    edge_cost_weights[3] = 1.0; //manipulator joint 1
+    edge_cost_weights[4] = 1.0; //manipulator joint 2
+    edge_cost_weights[5] = 1.0; //manipulator joint 3
+    edge_cost_weights[6] = 1.0; //manipulator joint 4
+    edge_cost_weights[7] = 1.0; //manipulator joint 5
+    edge_cost_weights[8] = 1.0; //manipulator joint 6
+    edge_cost_weights[9] = 1.0; //manipulator joint 7
+    edge_cost_weights[10] = 1.0; //manipulator joint 8
+    edge_cost_weights[11] = 1.0; //manipulator joint 9
+    edge_cost_weights[12] = 1.0; //manipulator joint 10
+    planner.setEdgeCostWeights(edge_cost_weights);
+
+    //Run planner
+    int planner_run_number = 0;
+    //planner.run_planner(search_space, 0, MAX_ITERATIONS, rviz_show_tree, iteration_sleep_time, planner_run_number);
+    planner.run_planner(search_space, max_iterations_or_time, max_iterations_time, rviz_show_tree, iteration_sleep_time, planner_run_number);
+    cout<<"..... Planner finished"<<endl;
+
+    visualiseResult(nh, planner);
+}
+
 
 int main(int argc, char** argv)
 {
@@ -54,17 +159,15 @@ int main(int argc, char** argv)
     // -------------------- Planner Setup ----------------------------
     //TODO: Read planning group from terminal input
     string planning_group = "pr2_base_arm";
-    birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
 
     //Set planning scene
     // TODO: read out / pass in the map size (-x, x), (-y, y)
-    vector<double> size_x{-10, 10};
-    vector<double> size_y{-10, 10};
-    planner.setPlanningSceneInfo(size_x, size_y, "my_planning_scene", true);
+    vector<double> env_size_x{-20, 20};
+    vector<double> env_size_y{-20, 20};
 
     //Set default values
     int SEARCH_SPACE = 1;
-    int MAX_ITERATIONS_TIME = 200;
+    int MAX_ITERATIONS_TIME = 75;
     bool MAX_ITERATIONS_OR_TIME = 1;
     bool RVIZ_SHOW_TREE = 1;
     double ITERATION_SLEEP_TIME = 0.0;
@@ -143,7 +246,7 @@ int main(int argc, char** argv)
     constraint_vec_goal_pose[5] = 1; //RotZ
 
     //Permitted displacement for ee coordinates w.r.t desired target frame
-    vector<pair<double,double> > target_coordinate_dev(6);
+    vector<pair<double,double>> target_coordinate_dev(6);
     target_coordinate_dev[0].first = -0.005;    //negative X deviation [m]
     target_coordinate_dev[0].second = 0.005;    //positive X deviation
     target_coordinate_dev[1].first = -0.005;    //negative Y deviation
@@ -183,93 +286,20 @@ int main(int argc, char** argv)
 //    permitted_coordinate_dev[5].first  = 0.0;    //negative Zrot deviation
 //    permitted_coordinate_dev[5].second = 0.0;   //positive Zrot deviation
 
-    //Set edge cost variable weights (to apply motion preferences)
-    vector<double> edge_cost_weights(13);
-    edge_cost_weights[0] = 1.0; //base_x
-    edge_cost_weights[1] = 1.0; //base_y
-    edge_cost_weights[2] = 1.0; //base_theta
-    edge_cost_weights[3] = 1.0; //manipulator joint 1
-    edge_cost_weights[4] = 1.0; //manipulator joint 2
-    edge_cost_weights[5] = 1.0; //manipulator joint 3
-    edge_cost_weights[6] = 1.0; //manipulator joint 4
-    edge_cost_weights[7] = 1.0; //manipulator joint 5
-    edge_cost_weights[8] = 1.0; //manipulator joint 6
-    edge_cost_weights[9] = 1.0; //manipulator joint 7
-    edge_cost_weights[10] = 1.0; //manipulator joint 8
-    edge_cost_weights[11] = 1.0; //manipulator joint 9
-    edge_cost_weights[12] = 1.0; //manipulator joint 10
-
-
-    // -------------------- Motion Planning Execution ----------------------------
-    if(SEARCH_SPACE == 0)
-        cout<<"Control-based Planner running......!"<<endl;
-    else if (SEARCH_SPACE == 1)
-        cout<<"C-Space Planner running......!"<<endl;
-    else
-        ROS_ERROR("PLANNER NOT KNOWN!!!");
-
-    //Initialize planner (with start and ee goal pose)
-    planner.init_planner(start_ee_pose, constraint_vec_start_pose, ee_goal_pose, constraint_vec_goal_pose, target_coordinate_dev, SEARCH_SPACE);
-    //Activate the constraint
-    // -> Syntax: planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, bool task_pos_global, bool task_orient_global);
-    // bool task_pos_global -> indicates whether task frame position is expressed w.r.t near node ee pos or always w.r.t start frame ee pos
-    // bool task_orient_global -> indicates whether task frame orientation is expressed w.r.t near node ee orientation or always w.r.t start frame ee orientation
-    //planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, true, true);
-    planner.setEdgeCostWeights(edge_cost_weights);
-
-    //Run planner
-    int planner_run_number = 0;
-    //planner.run_planner(SEARCH_SPACE, 0, MAX_ITERATIONS, RVIZ_SHOW_TREE, ITERATION_SLEEP_TIME, planner_run_number);
-    planner.run_planner(SEARCH_SPACE, MAX_ITERATIONS_OR_TIME, MAX_ITERATIONS_TIME, RVIZ_SHOW_TREE, ITERATION_SLEEP_TIME, planner_run_number);
-
-    //End of planning phase
-    cout<<"..... Planner finished"<<endl;
-
-
-    // Visualize solution
-    vector<vector<double>> joint_trajectory = planner.getJointTrajectory();
-    vector<vector<double>> ee_trajectory = planner.getEndeffectorTrajectory();
-
-    //Get curent planning scene and robot state
-    string robot_description_robot;
-    nh.param("robot_description_robot", robot_description_robot, std::string("robot_description"));
-    string ns_prefix_robot;
-    nh.param("ns_prefix_robot", ns_prefix_robot, std::string(""));
-    string planning_scene_service_ns = ns_prefix_robot + "get_planning_scene";
-
-    planning_scene_monitor::PlanningSceneMonitorPtr psm;
-    psm.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_description_robot));
-    psm->requestPlanningSceneState(planning_scene_service_ns);
-    planning_scene_monitor::LockedPlanningSceneRW ps(psm);
-    ps->getCurrentStateNonConst().update();
-    //if you want to modify it
-    planning_scene::PlanningScenePtr scene = ps->diff();
-    scene->decoupleParent();
-    robot_state::RobotState state(psm->getRobotModel());
-
-    vector<string> joint_names = planner.getJointNames();
-
-    for (int i = 0; i < joint_names.size(); i ++) {
-        cout<<joint_names[i]<<std::endl;
-    }
-
-    int step = 5;
-
-    while (true) {
-        for (int i = 0; i < joint_trajectory.size(); i += step) {
-            vector<double> joint_values = joint_trajectory[i];
-            map<string, double> nvalues;
-            assert(joint_names.size() == joint_values.size());
-            for (int ii = 0; ii < joint_names.size(); ++ii) {
-                nvalues[joint_names[ii]] = joint_values[ii];
-            }
-
-            publishRobotState(nh, scene, state, ns_prefix_robot, nvalues);
-            ros::Duration(0.05).sleep();
-        }
-        ros::Duration(0.5).sleep();
-    }
-
+    runScenario(nh,
+                planning_group,
+                env_size_x,
+                env_size_y,
+                start_ee_pose,
+                constraint_vec_start_pose,
+                ee_goal_pose,
+                constraint_vec_goal_pose,
+                target_coordinate_dev,
+                SEARCH_SPACE,
+                MAX_ITERATIONS_TIME,
+                MAX_ITERATIONS_OR_TIME,
+                RVIZ_SHOW_TREE,
+                ITERATION_SLEEP_TIME);
 
     ros::shutdown();
 
