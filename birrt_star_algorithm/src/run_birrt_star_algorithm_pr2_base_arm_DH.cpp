@@ -195,19 +195,19 @@ int main(int argc, char** argv)
 //    permitted_coordinate_dev[5].first  = 0.0;    //negative Zrot deviation
 //    permitted_coordinate_dev[5].second = 0.0;   //positive Zrot deviation
 
-    runScenario(planning_group,
-                env_size_x,
-                env_size_y,
-                start_ee_pose,
-                constraint_vec_start_pose,
-                ee_goal_pose,
-                constraint_vec_goal_pose,
-                target_coordinate_dev,
-                SEARCH_SPACE,
-                MAX_ITERATIONS_TIME,
-                MAX_ITERATIONS_OR_TIME,
-                RVIZ_SHOW_TREE,
-                ITERATION_SLEEP_TIME);
+    birrthelper::runScenario(planning_group,
+                             env_size_x,
+                             env_size_y,
+                             start_ee_pose,
+                             constraint_vec_start_pose,
+                             ee_goal_pose,
+                             constraint_vec_goal_pose,
+                             target_coordinate_dev,
+                             SEARCH_SPACE,
+                             MAX_ITERATIONS_TIME,
+                             MAX_ITERATIONS_OR_TIME,
+                             RVIZ_SHOW_TREE,
+                             ITERATION_SLEEP_TIME);
 
     ros::shutdown();
 
