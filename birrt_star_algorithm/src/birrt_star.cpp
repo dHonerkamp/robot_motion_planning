@@ -1625,7 +1625,7 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
 
         //Set executed planning time to "planning_time_elapsed"
         m_executed_planner_time = planning_time_elapsed;
-        ROS_INFO("m_executed_planner_time: %f", m_executed_planner_time);
+        // ROS_INFO("m_executed_planner_time: %f", m_executed_planner_time);
 
         double elapsed_time_percent = (planning_time_elapsed/m_max_planner_time)*100.0;
         double elapsed_time_percent_output = elapsed_time_percent < 100.0 ? elapsed_time_percent : 100.0;

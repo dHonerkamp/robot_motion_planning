@@ -88,7 +88,6 @@ namespace birrthelper {
                                     const bool &max_iterations_or_time,
                                     const bool &rviz_show_tree,
                                     const double &iteration_sleep_time) {
-        // -------------------- Motion Planning Execution ----------------------------
         if (search_space == 0)
             cout << "Control-based Planner running......!" << endl;
         else if (search_space == 1)
@@ -103,16 +102,20 @@ namespace birrthelper {
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
         planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
 
-        //Initialize planner (with start and ee goal pose)
-        planner.init_planner(start_ee_pose, constraint_vec_start_pose, ee_goal_pose, constraint_vec_goal_pose,
-                             target_coordinate_dev, search_space);
+        planner.init_planner(start_ee_pose,
+                             constraint_vec_start_pose,
+                             ee_goal_pose,
+                             constraint_vec_goal_pose,
+                             target_coordinate_dev,
+                             search_space);
+
         //Activate the constraint
         // -> Syntax: planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, bool task_pos_global, bool task_orient_global);
         // bool task_pos_global -> indicates whether task frame position is expressed w.r.t near node ee pos or always w.r.t start frame ee pos
         // bool task_orient_global -> indicates whether task frame orientation is expressed w.r.t near node ee orientation or always w.r.t start frame ee orientation
         //planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, true, true);
 
-        //Set edge cost variable weights (to apply motion preferences)
+        // Set edge cost variable weights (to apply motion preferences)
         vector<double> edge_cost_weights(13);
         edge_cost_weights[0] = 1.0; //base_x
         edge_cost_weights[1] = 1.0; //base_y
@@ -129,9 +132,7 @@ namespace birrthelper {
         edge_cost_weights[12] = 1.0; //manipulator joint 10
         planner.setEdgeCostWeights(edge_cost_weights);
 
-        //Run planner
         int planner_run_number = 0;
-        //planner.run_planner(search_space, 0, MAX_ITERATIONS, rviz_show_tree, iteration_sleep_time, planner_run_number);
         bool success = planner.run_planner(search_space,
                                            max_iterations_or_time,
                                            max_iterations_time,
@@ -140,7 +141,7 @@ namespace birrthelper {
                                            planner_run_number);
         cout << "..... Planner finished" << endl;
 
-        if (rviz_show_tree) {
+        if (success && rviz_show_tree) {
             visualiseResult(nh, planner);
         }
 
