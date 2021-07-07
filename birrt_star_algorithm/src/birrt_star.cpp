@@ -2383,11 +2383,9 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
     }
 
     //Write Planner Statistics to File
-    writePlannerStatistics(m_file_path_planner_statistics, m_file_path_cost_evolution);
-
+    m_metrics = writePlannerStatistics(m_file_path_planner_statistics, m_file_path_cost_evolution);
     //Return planner result (true = success, false = failure)
     return m_solution_path_available;
-
 }
 
 
@@ -8708,8 +8706,44 @@ void BiRRTstarPlanner::computeFinalSolutionPathTrajectories()
 
 
 //Write Planner Statistics to File
-void BiRRTstarPlanner::writePlannerStatistics(char *statistics_file, char *cost_evolution_file)
+map<string, double> BiRRTstarPlanner::writePlannerStatistics(char *statistics_file, char *cost_evolution_file)
 {
+    map<string, double> stats;
+    stats["success"] = m_planner_success;
+    stats["solution_path_available"] = m_solution_path_available;
+    if (stats["success"] != stats["solution_path_available"]){
+        throw std::runtime_error("success != solution_path_available?");
+    }
+
+    stats["executed_time"] = m_executed_planner_time;
+    stats["m_executed_planner_iter"] = m_executed_planner_iter;
+
+    stats["first_solution_iter"] = m_first_solution_iter;
+    stats["first_solution_time"] = m_time_first_solution;
+    stats["last_solution_iter"] = m_last_solution_iter;
+    stats["last_solution_time"] = m_time_last_solution;
+
+    stats["total_plannig_time"] = m_time_planning_end;
+    stats["total_plannig_iter"] = m_executed_planner_iter;
+
+
+     stats["cost_theoretical_solution_total"] = m_cost_theoretical_solution_path[0];
+     stats["cost_theoretical_solution_revolute"] = m_cost_theoretical_solution_path[1];
+     stats["cost_theoretical_solution_prismatics"] = m_cost_theoretical_solution_path[2];
+     stats["cost_final_solution_total"] = m_cost_best_solution_path;
+     stats["cost_final_solution_revolute"] = m_cost_best_solution_path_revolute;
+     stats["cost_final_solution_prismatic"] = m_cost_best_solution_path_prismatic;
+     stats["num_nodes_start_tree"] = m_start_tree.num_nodes;
+     stats["num_nodes_goal_tree"] = m_goal_tree.num_nodes;
+     stats["num_nodes_total"] = m_start_tree.num_nodes + m_goal_tree.num_nodes;
+     stats["num_edges_start_tree"] = m_start_tree.num_edges;
+     stats["num_edges_goal_tree"] = m_goal_tree.num_edges;
+     stats["num_edges_total"] = m_start_tree.num_edges + m_goal_tree.num_edges;
+     stats["num_rewire_start_tree"] = m_start_tree.num_rewire_operations;
+     stats["num_rewire_goal_tree"] = m_goal_tree.num_rewire_operations;
+     stats["num_rewire_total"] = m_start_tree.num_rewire_operations + m_goal_tree.num_rewire_operations;
+
+
     //+++++++++ Write planner statistics to file ++++++++
 
     //Remove the planner statistics file
@@ -8826,6 +8860,7 @@ void BiRRTstarPlanner::writePlannerStatistics(char *statistics_file, char *cost_
     //Close the file
     planner_cost_file.close();
 
+    return stats;
 }
 
 

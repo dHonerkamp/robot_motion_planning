@@ -129,12 +129,13 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     int getNumRevoluteJointsPlanningGroup();
 
     vector<string> getJointNames(){ return m_RobotMotionController->getJointNames(); };
-
+    map<string, double> getMetrics(){ return m_metrics; };
 
     private:
 
 
     //-- Class Objects --
+    map<string, double> m_metrics;
 
     //Node handle
     ros::NodeHandle m_nh;
@@ -527,7 +528,7 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     char* m_file_path_cost_evolution;
 
     //Write Planner Statistics to File
-    void writePlannerStatistics(char *statistics_file, char *cost_evolution_file);
+    map<string, double> writePlannerStatistics(char *statistics_file, char *cost_evolution_file);
 
     //Method for Solution Path Smoothing
     //void basic_solution_path_smoothing(vector< vector<double> > raw_joint_trajectory);

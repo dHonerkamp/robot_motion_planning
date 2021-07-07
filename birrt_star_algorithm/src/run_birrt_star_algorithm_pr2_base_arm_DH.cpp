@@ -87,9 +87,8 @@ void visualiseResult(ros::NodeHandle nh, birrt_star_motion_planning::BiRRTstarPl
 }
 
 // TODO: option to pass in full initial robot configuration (should already exist, just replace the reading from a txt file)
-// TODO: move left arm into same initial pose as for modulation_rl (in same position in gazebo, but does not seem to update the robot model with this)
-void runScenario(ros::NodeHandle &nh,
-                 const string &planning_group,
+// TODO: move left arm into same initial pose as for modulation_rl (in same position in gazebo, but does not seem to update the robot model with this), torso link is not getting updated either
+map<string, double> runScenario(const string &planning_group,
                  const vector<double> &env_size_x,
                  const vector<double> &env_size_y,
                  const vector<double> &start_ee_pose,
@@ -109,6 +108,10 @@ void runScenario(ros::NodeHandle &nh,
         cout<<"C-Space Planner running......!"<<endl;
     else
         ROS_ERROR("PLANNER NOT KNOWN!!!");
+
+    int blub = 0;
+    ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
+    ros::NodeHandle nh;
 
     birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
     planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
@@ -141,18 +144,24 @@ void runScenario(ros::NodeHandle &nh,
     //Run planner
     int planner_run_number = 0;
     //planner.run_planner(search_space, 0, MAX_ITERATIONS, rviz_show_tree, iteration_sleep_time, planner_run_number);
-    planner.run_planner(search_space, max_iterations_or_time, max_iterations_time, rviz_show_tree, iteration_sleep_time, planner_run_number);
-    cout<<"..... Planner finished"<<endl;
+    bool success = planner.run_planner(search_space,
+                                       max_iterations_or_time,
+                                       max_iterations_time,
+                                       rviz_show_tree,
+                                       iteration_sleep_time,
+                                       planner_run_number);
+    cout << "..... Planner finished" << endl;
 
-    visualiseResult(nh, planner);
+    if (rviz_show_tree) {
+        visualiseResult(nh, planner);
+    }
+
+    return planner.getMetrics();
 }
 
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "birrt_star_algorithm_pr2_base_arm_node_DH");
-    ros::NodeHandle nh;
-
     // -------------------- Planner Setup ----------------------------
     //TODO: Read planning group from terminal input
     string planning_group = "pr2_base_arm";
@@ -327,8 +336,7 @@ int main(int argc, char** argv)
 //    permitted_coordinate_dev[5].first  = 0.0;    //negative Zrot deviation
 //    permitted_coordinate_dev[5].second = 0.0;   //positive Zrot deviation
 
-    runScenario(nh,
-                planning_group,
+    runScenario(planning_group,
                 env_size_x,
                 env_size_y,
                 start_ee_pose,
