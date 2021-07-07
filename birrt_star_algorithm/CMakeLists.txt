@@ -144,9 +144,11 @@ set(birrt_star_algorithm_files
 #CPP Files
 #src/run_rrt_star_algorithm.cpp
 src/birrt_star.cpp
+src/birrt_star_helper.cpp
 
 #Header files (added only for visualization in QtCreator)
 include/birrt_star_algorithm/birrt_star.h
+include/birrt_star_algorithm/birrt_star_helper.h
 
 )
 
