@@ -31,5 +31,26 @@ namespace birrthelper {
                                     const bool &max_iterations_or_time = 1,
                                     const bool &rviz_show_tree = 1,
                                     const double &iteration_sleep_time = 0.0);
+    map<string, double> runScenario(const string &planning_group,
+                                    const vector<double> &env_size_x,
+                                    const vector<double> &env_size_y,
+                                    const vector<double> &start_conf,
+                                    const vector<double> &ee_goal_pose,
+                                    const vector<int> &constraint_vec_goal_pose,
+                                    const vector <pair<double, double>> &target_coordinate_dev,
+                                    const int &search_space,
+                                    const int &max_iterations_time,
+                                    const bool &max_iterations_or_time,
+                                    const bool &rviz_show_tree,
+                                    const double &iteration_sleep_time);
+
+    map<string, double> _runScenario(birrt_star_motion_planning::BiRRTstarPlanner &initialised_planner,
+                                     const vector<double> &env_size_x,
+                                     const vector<double> &env_size_y,
+                                     const int &search_space,
+                                     const int &max_iterations_time,
+                                     const bool &max_iterations_or_time,
+                                     const bool &rviz_show_tree,
+                                     const double &iteration_sleep_time);
 }
 #endif //BIRRT_STAR_ALGORITHM_BIRRT_STAR_HELPER_H

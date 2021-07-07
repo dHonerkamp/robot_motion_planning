@@ -368,6 +368,13 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
         return false;
     }
 
+    if (search_space == 0)
+        cout << "Control-based Planner running......!" << endl;
+    else if (search_space == 1)
+        cout << "C-Space Planner running......!" << endl;
+    else
+        ROS_ERROR("PLANNER NOT KNOWN!!!");
+
     //Initialize map to robot transform before performing collision checks
     if(m_planning_frame == "/map")
     {

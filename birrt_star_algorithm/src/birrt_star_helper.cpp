@@ -30,7 +30,9 @@ namespace birrthelper {
         scene_pub.publish(psmsg);
     }
 
-    void visualiseResult(ros::NodeHandle nh, birrt_star_motion_planning::BiRRTstarPlanner planner) {
+    void visualiseResult(birrt_star_motion_planning::BiRRTstarPlanner planner) {
+        ros::NodeHandle nh;
+
         vector <vector<double>> joint_trajectory = planner.getJointTrajectory();
         vector <vector<double>> ee_trajectory = planner.getEndeffectorTrajectory();
 
@@ -88,26 +90,67 @@ namespace birrthelper {
                                     const bool &max_iterations_or_time,
                                     const bool &rviz_show_tree,
                                     const double &iteration_sleep_time) {
-        if (search_space == 0)
-            cout << "Control-based Planner running......!" << endl;
-        else if (search_space == 1)
-            cout << "C-Space Planner running......!" << endl;
-        else
-            ROS_ERROR("PLANNER NOT KNOWN!!!");
-
         int blub = 0;
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
-        ros::NodeHandle nh;
 
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
-        planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
-
         planner.init_planner(start_ee_pose,
                              constraint_vec_start_pose,
                              ee_goal_pose,
                              constraint_vec_goal_pose,
                              target_coordinate_dev,
                              search_space);
+        return _runScenario(planner,
+                            env_size_x,
+                            env_size_y,
+                            search_space,
+                            max_iterations_time,
+                            max_iterations_or_time,
+                            rviz_show_tree,
+                            iteration_sleep_time);
+    }
+
+    map<string, double> runScenario(const string &planning_group,
+                                    const vector<double> &env_size_x,
+                                    const vector<double> &env_size_y,
+                                    const vector<double> &start_conf,
+                                    const vector<double> &ee_goal_pose,
+                                    const vector<int> &constraint_vec_goal_pose,
+                                    const vector <pair<double, double>> &target_coordinate_dev,
+                                    const int &search_space,
+                                    const int &max_iterations_time,
+                                    const bool &max_iterations_or_time,
+                                    const bool &rviz_show_tree,
+                                    const double &iteration_sleep_time) {
+        int blub = 0;
+        ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
+
+        birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
+        planner.init_planner(start_conf,
+                             ee_goal_pose,
+                             constraint_vec_goal_pose,
+                             target_coordinate_dev,
+                             search_space);
+        return _runScenario(planner,
+                            env_size_x,
+                            env_size_y,
+                            search_space,
+                            max_iterations_time,
+                            max_iterations_or_time,
+                            rviz_show_tree,
+                            iteration_sleep_time);
+    }
+
+
+    map<string, double> _runScenario(birrt_star_motion_planning::BiRRTstarPlanner &initialised_planner,
+                                     const vector<double> &env_size_x,
+                                     const vector<double> &env_size_y,
+                                     const int &search_space,
+                                     const int &max_iterations_time,
+                                     const bool &max_iterations_or_time,
+                                     const bool &rviz_show_tree,
+                                     const double &iteration_sleep_time) {
+        initialised_planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
 
         //Activate the constraint
         // -> Syntax: planner.setParameterizedTaskFrame(constraint_vector, permitted_coordinate_dev, bool task_pos_global, bool task_orient_global);
@@ -130,21 +173,21 @@ namespace birrthelper {
         edge_cost_weights[10] = 1.0; //manipulator joint 8
         edge_cost_weights[11] = 1.0; //manipulator joint 9
         edge_cost_weights[12] = 1.0; //manipulator joint 10
-        planner.setEdgeCostWeights(edge_cost_weights);
+        initialised_planner.setEdgeCostWeights(edge_cost_weights);
 
         int planner_run_number = 0;
-        bool success = planner.run_planner(search_space,
-                                           max_iterations_or_time,
-                                           max_iterations_time,
-                                           rviz_show_tree,
-                                           iteration_sleep_time,
-                                           planner_run_number);
+        bool success = initialised_planner.run_planner(search_space,
+                                                       max_iterations_or_time,
+                                                       max_iterations_time,
+                                                       rviz_show_tree,
+                                                       iteration_sleep_time,
+                                                       planner_run_number);
         cout << "..... Planner finished" << endl;
 
         if (success && rviz_show_tree) {
-            visualiseResult(nh, planner);
+            visualiseResult(initialised_planner);
         }
 
-        return planner.getMetrics();
+        return initialised_planner.getMetrics();
     }
 }
