@@ -49,6 +49,8 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     //bool move_base_endeffector(const Eigen::Affine3d& goal);
     //bool move_endeffector(const Eigen::Affine3d& goal);
 
+    bool _init(vector<double> ee_start_pose, vector<double> ee_goal_pose, vector<double> start_conf, vector<double> goal_conf, int search_space);
+
     //Initialize RRT* Planner (reading start and goal config from file)
     bool init_planner(char *start_goal_config_file, int search_space);
 
