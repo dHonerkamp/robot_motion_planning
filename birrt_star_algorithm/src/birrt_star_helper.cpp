@@ -94,12 +94,16 @@ namespace birrthelper {
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
 
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
-        planner.init_planner(start_ee_pose,
-                             constraint_vec_start_pose,
-                             ee_goal_pose,
-                             constraint_vec_goal_pose,
-                             target_coordinate_dev,
-                             search_space);
+        bool initialisation_ok = planner.init_planner(start_ee_pose,
+                                                      constraint_vec_start_pose,
+                                                      ee_goal_pose,
+                                                      constraint_vec_goal_pose,
+                                                      target_coordinate_dev,
+                                                      search_space);
+        if (!initialisation_ok){
+            map<string, double> m;
+            return m;
+        }
         return _runScenario(planner,
                             env_size_x,
                             env_size_y,
@@ -126,11 +130,15 @@ namespace birrthelper {
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
 
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
-        planner.init_planner(start_conf,
-                             ee_goal_pose,
-                             constraint_vec_goal_pose,
-                             target_coordinate_dev,
-                             search_space);
+        bool initialisation_ok = planner.init_planner(start_conf,
+                                                      ee_goal_pose,
+                                                      constraint_vec_goal_pose,
+                                                      target_coordinate_dev,
+                                                      search_space);
+        if (!initialisation_ok){
+            map<string, double> m;
+            return m;
+        }
         return _runScenario(planner,
                             env_size_x,
                             env_size_y,

@@ -364,22 +364,13 @@ BiRRTstarPlanner::~BiRRTstarPlanner()
 bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goal_pose, vector<double> start_conf, vector<double> goal_conf, int search_space){
     //Check dimension of config
     if(start_conf.size() != m_num_joints || goal_conf.size() != m_num_joints) {
-        ROS_ERROR("Dimension of configuration vector does not match the number of joints in the planning group!");
+        ROS_ERROR("Dimension of configuration vector does not match number of joints in planning group: %i num_joints vs size %i of passed in start_conf", (int)m_num_joints, (int)start_conf.size());
         return false;
     }
 
-    if (search_space == 0)
-        cout << "Control-based Planner running......!" << endl;
-    else if (search_space == 1)
-        cout << "C-Space Planner running......!" << endl;
-    else
-        ROS_ERROR("PLANNER NOT KNOWN!!!");
-
     //Initialize map to robot transform before performing collision checks
-    if(m_planning_frame == "/map")
-    {
-        if(!m_FeasibilityChecker->update_map_to_robot_transform())
-            ROS_INFO_STREAM("Failed to update map to robot transform in feasibility checker");
+    if((m_planning_frame == "/map") && (!m_FeasibilityChecker->update_map_to_robot_transform())){
+        ROS_INFO_STREAM("Failed to update map to robot transform in feasibility checker");
     }
 
     //Check start and goal config for validity
@@ -391,21 +382,22 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
     }else if (goal_conf_valid == false){
         ROS_ERROR("Goal configuration is invalid!!!");
         return false;
-    }else{
-        //Nothing to do
     }
 
     //Compute Heuristic for root node (either distance between start and goal config or between start and goal endeffector pose)
     //m_cost_theoretical_solution_path[0] -> total
     //m_cost_theoretical_solution_path[1] -> revolute distance norm
     //m_cost_theoretical_solution_path[2] -> prismatic distance norm
-    if(search_space == 0) //Planning in Control Space
+    if(search_space == 0) {
+        cout << "Using control-based Planner!" << endl;
         m_cost_theoretical_solution_path[0] = m_Heuristic.euclidean_pose_distance(ee_start_pose, ee_goal_pose);
-    else if (search_space == 1) //Planning in Joint Space
+    } else if (search_space == 1){
+        cout << "Using joint- / configuration-space Planner!" << endl;
         m_cost_theoretical_solution_path = m_Heuristic.euclidean_joint_space_distance(m_manipulator_chain, start_conf, goal_conf);
-    else
+    } else {
         ROS_ERROR("Requested planner search space does not exist!!!");
-
+        return false;
+    }
 
     //---Create Goal Node for RRT* Tree
     Node goal_node;
@@ -540,8 +532,7 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
 
 
     //Initialization of Variables required for Ellipse Sampling
-    if(search_space == 0) //Planning in Control Space
-    {
+    if(search_space == 0){ //Planning in Control Space
         //TODO Ellipse Sampling Initialization
     }
     else if (search_space == 1) //Planning in Joint Space
@@ -560,8 +551,7 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
     m_time_planning_end = 0.0;
 
     //If planning is performed in the map frame
-    if(m_planning_frame == "/map")
-    {
+    if(m_planning_frame == "/map"){
         //Get current pose of robot in the map frame
         tf::TransformListener listener;
         try {
@@ -576,7 +566,6 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
         }
     }
 
-    //Everything went fine
     return true;
 }
 
@@ -595,13 +584,6 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
         ROS_INFO("Start and goal config successfully read from file!!!");
     }
 
-    //Check dimension of config
-    if(start_conf.size() != m_num_joints || goal_conf.size() != m_num_joints)
-    {
-        ROS_ERROR("Dimension of configuration vector does not match the number of joints in the planning group!");
-        return false;
-    }
-
     //Convert start and goal configuration into KDL Joint Array
     KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
     KDL::JntArray goal_configuration = m_RobotMotionController->Vector_to_JntArray(goal_conf);
@@ -615,13 +597,6 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
 //Initialize RRT* Planner (given start and config)
 bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space)
 {
-    //Check dimension of config
-    if(start_conf.size() != m_num_joints || goal_conf.size() != m_num_joints)
-    {
-        ROS_ERROR("Dimension of configuration vector does not match the number of joints in the planning group!");
-        return false;
-    }
-
     //Convert start and goal configuration into KDL Joint Array
     KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
     KDL::JntArray goal_configuration = m_RobotMotionController->Vector_to_JntArray(goal_conf);
@@ -636,14 +611,6 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
 //Initialize RRT* Planner (given start config and final endeffector pose)
 bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space)
 {
-
-    //Check dimension of config
-    if(start_conf.size() != m_num_joints)
-    {
-        ROS_ERROR("Dimension of configuration vector does not match the number of joints in the planning group!");
-        return false;
-    }
-
     //Note: ee_goal_pose represents the end-effector goal pose with respect to the "base_link"
 
     //Convert XYZ euler orientation of goal pose to quaternion
@@ -658,7 +625,6 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     goal_ee_pose_quat_orient[4] = quat_goal_pose[1];  //quat_y
     goal_ee_pose_quat_orient[5] = quat_goal_pose[2];  //quat_z
     goal_ee_pose_quat_orient[6] = quat_goal_pose[3];  //quat_w
-
     //Find configuration for endeffector goal pose (using start_config as mean config for init_config sampling)
     vector<double> goal_conf = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, start_conf, false);
 
@@ -668,7 +634,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     //Find endeffector pose for start configuration
     vector<double> ee_start_pose = computeEEPose(start_configuration);
 
-    return _init(ee_start_pose, goal_ee_pose_quat_orient, start_conf, goal_conf, search_space);
+    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space);
 }
 
 
