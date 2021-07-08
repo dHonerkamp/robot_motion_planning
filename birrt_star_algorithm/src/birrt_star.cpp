@@ -2542,8 +2542,7 @@ vector<double> BiRRTstarPlanner::computeEEPose(KDL::JntArray start_conf)
 
 
 //Compute IK for given endeffector goal pose
-vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, bool show_motion)
-{
+vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, bool show_motion){
     //Init configuration validity
     bool collision_free = false;
 
@@ -2551,23 +2550,18 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
     // -> Considered in error computation of control loop
     m_RobotMotionController->setVariableConstraints(constraint_vec, coordinate_dev);
 
-
     //Run numerical IK Solver
     vector<double> ik_solution;
-    while (collision_free == false)
-    {
-
+    while (collision_free == false) {
         //Output joint and endeffector trajectory from controller
         vector<vector<double> > joint_trajectory;
         vector<vector<double> > ee_trajectory;
-
 
         //Get  random start config
         vector<double> conf_init = sampleJointConfig_Vector();
 
         //Set new random start config
         m_RobotMotionController->setStartConf(conf_init);
-
 
         //Set ee goal pose for numerical IK solver
         //Note: "set_EE_goal_pose" needs to be called after "setStartConf" since this function also initializes the initial error
@@ -2577,28 +2571,24 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
         kuka_motion_controller::Status connector_state = m_RobotMotionController->run_VDLS_Control_Connector(1000, joint_trajectory,ee_trajectory,show_motion,show_motion);
 
         //Set last configuration of joint trajectory as goal config / ik solution
-        if(0 < joint_trajectory.size())
-            ik_solution = joint_trajectory[joint_trajectory.size()-1];
-        else
-        {
+        if (0 < joint_trajectory.size()) {
+            ik_solution = joint_trajectory[joint_trajectory.size() - 1];
+        } else {
             ROS_ERROR("Something went wrong in generating the IK solution with the VDLS_Control_Connector");
         }
 
         //Perform collision check when pose has been reached
-        if(connector_state == kuka_motion_controller::REACHED)
-        {
-            cout<<"EE Pose reached ..."<<endl;
+        if (connector_state == kuka_motion_controller::REACHED) {
+            cout << "EE Pose reached ..." << endl;
 
             //Check is it is collision free
-            if(m_FeasibilityChecker->isConfigValid(ik_solution,true))
-            {
+            if (m_FeasibilityChecker->isConfigValid(ik_solution, true)) {
                 collision_free = true;
-                cout<<"... and valid!"<<endl;
+                cout << "... and valid!" << endl;
+            } else {
+                cout << "... but invalid!" << endl;
             }
-            else
-                cout<<"... but invalid!"<<endl;
         }
-
     }
     
     //Return last configuration of joint trajectory (placing the EE at the goal_ee_pose)
@@ -2606,12 +2596,8 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
 }
 
 
-
-
 //Compute IK for given endeffector goal pose (given a specific initial config)
-vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, vector<double> mean_init_config, bool show_motion)
-{
-
+vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, vector<double> mean_init_config, bool show_motion) {
     //Init configuration validity
     bool collision_free = false;
 
@@ -2624,8 +2610,7 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
 
     //Run numerical IK Solver
     vector<double> ik_solution;
-    while (collision_free == false)
-    {
+    while (collision_free == false) {
         //Output joint and endeffector trajectory from controller
         vector<vector<double> > joint_trajectory;
         vector<vector<double> > ee_trajectory;
@@ -2653,32 +2638,25 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
         kuka_motion_controller::Status connector_state = m_RobotMotionController->run_VDLS_Control_Connector(1000, joint_trajectory,ee_trajectory,show_motion,show_motion);
 
         //Set last configuration of joint trajectory as goal config / ik solution
-        if(0 < joint_trajectory.size())
-            ik_solution = joint_trajectory[joint_trajectory.size()-1];
-        else
-        {
+        if(0 < joint_trajectory.size()) {
+            ik_solution = joint_trajectory[joint_trajectory.size() - 1];
+        } else {
             ROS_ERROR("Something went wrong in generating the IK solution with the VDLS_Control_Connector");
         }
 
         //Perform collision check when pose has been reached
-        if(connector_state == kuka_motion_controller::REACHED)
-        {
+        if(connector_state == kuka_motion_controller::REACHED) {
             cout<<"EE Pose reached ..."<<endl;
 
             //Check is it is collision free
-            if(m_FeasibilityChecker->isConfigValid(ik_solution,true))
-            {
+            if(m_FeasibilityChecker->isConfigValid(ik_solution,true)) {
                 collision_free = true;
                 cout<<"... and valid!"<<endl;
-            }
-            else
+            } else
                 cout<<"... but invalid!"<<endl;
-        }
-        else
-        {
+        } else {
             cout<<"Failed to reach EE Pose!"<<endl;
         }
-
     }
 
     //Return last configuration of joint trajectory (placing the EE at the goal_ee_pose)
