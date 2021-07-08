@@ -374,12 +374,14 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
     }
 
     //Check start and goal config for validity
-    bool start_conf_valid = m_FeasibilityChecker->isConfigValid(start_conf);
-    bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf);
+    bool print_contacts = true;
+    bool start_conf_valid = m_FeasibilityChecker->isConfigValid(start_conf, print_contacts);
     if(start_conf_valid == false){
         ROS_ERROR("Start configuration is invalid!!!");
         return false;
-    }else if (goal_conf_valid == false){
+    }
+    bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf, print_contacts);
+    if (goal_conf_valid == false){
         ROS_ERROR("Goal configuration is invalid!!!");
         return false;
     }

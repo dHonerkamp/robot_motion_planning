@@ -206,7 +206,6 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
     planning_scene::PlanningScenePtr scene = ps->diff();
     scene->decoupleParent();
 
-
     //Collision checking Setup
     collision_detection::CollisionRequest collision_request;
     collision_request.group_name = m_planning_group;
@@ -217,25 +216,19 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
     collision_request.contacts = print_contacts;
     collision_request.max_contacts = 1000;
 
-
-    //Init isValid flag to be returned by the function
     bool isValid = true;
-
 
     //++++++++++ START: TESTING ++++++++++
 
     //Transform base config to /map frame only when localization is active (acml package)
-    if(m_planning_frame == "/map" && m_num_joints_prismatic >= 2 && m_num_joints_revolute >= 1)
-    {
+    if(m_planning_frame == "/map" && m_num_joints_prismatic >= 2 && m_num_joints_revolute >= 1){
     	//cout<<"Name of Planning frame: "<<m_planning_frame<<endl;
 
-        if(m_transform_map_to_base_available)
-        {
+        if(m_transform_map_to_base_available){
             //Transform base_link to sample
             tf::StampedTransform transform_base_to_sample;
             transform_base_to_sample.setOrigin(tf::Vector3(config[0],config[1], 0.0));
             transform_base_to_sample.setRotation(tf::createQuaternionFromYaw(config[2]));
-
 
             //Transform map frame to sample
             tf::StampedTransform transform_map_to_sample;
@@ -256,20 +249,16 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
             config[2] = map_to_sample_conf[2];
         }
     }
-
-
     //++++++++++ END: TESTING ++++++++++
 
     //Set up Map storing the configuration of manipulator
     std::map<std::string, double> configuration;
-    for (int i = 0; i < m_num_joints ; i++)
-    {
+    for (int i = 0; i < m_num_joints ; i++){
         configuration[m_joint_names[i]] = config[i];
         //std::cout<<m_joint_names[i] <<": "<<configuration[m_joint_names[i]]<<std::endl;
     }
 
-    if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh")
-    {
+    if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh"){
         configuration["sdh2_finger_12_joint"] = -1.57;
         configuration["sdh2_finger_22_joint"] = -1.57;
         configuration["sdh2_thumb_2_joint"] = -1.57;
@@ -279,8 +268,6 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
     //robot_state::RobotState state(scene->getRobotModel());
     robot_state::RobotState state = scene->getCurrentStateNonConst();
     state.setToDefaultValues();
-
-
 
     //Set Configuration of robot state
     state.setVariablePositions(configuration);
@@ -302,28 +289,17 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
     //Check for collisions
     scene->checkCollision(collision_request, collision_result, state, acm);
 
-    //Print collision checking results
-    //ROS_INFO_STREAM("Current state is " << (collision_result.collision ? "in" : "not in") << " self collision");
-
     //Write result of collision check to console
-    if (collision_result.collision == 1)
-    {
+    if (collision_result.collision == 1){
         isValid = false;
         //std::cout<< "Config is in self-collision or in collision with an obstacle"<< std::endl;
 
-        for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it)
-        {
+        for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it){
             ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and " <<it->first.second.c_str());
         }
-
     }
 
-
-    //Check whether config is valid
-    //if (isValid == true)
-    //{
-        //std::cout<< "Config is collision-free"<< std::endl;
-    //}
+    ROS_INFO_STREAM("Current state is " << (collision_result.collision ? "in" : "not in") << " self collision. isValid: " << isValid);
 
     return isValid;
 }
@@ -345,13 +321,11 @@ bool FeasibilityChecker::isConfigValid(KDL::JntArray config, bool print_contacts
     planning_scene::PlanningScenePtr scene = ps->diff();
     scene->decoupleParent();
 
-
     //Collision checking Setup
     collision_detection::CollisionRequest collision_request;
     collision_request.group_name = m_planning_group;
     collision_detection::CollisionResult collision_result;
     collision_detection::AllowedCollisionMatrix acm = scene->getAllowedCollisionMatrix();
-
 
     //For contact information
     collision_request.contacts = print_contacts;
@@ -364,14 +338,11 @@ bool FeasibilityChecker::isConfigValid(KDL::JntArray config, bool print_contacts
 
 
     //++++++++++ START: TESTING ++++++++++
-
     //Transform base config to /map frame only when localization is active (acml package)
-    if(m_planning_frame == "/map" && m_num_joints_prismatic >= 2 && m_num_joints_revolute >= 1)
-    {
+    if(m_planning_frame == "/map" && m_num_joints_prismatic >= 2 && m_num_joints_revolute >= 1){
         //cout<<"Name of Planning frame: "<<m_planning_frame<<endl;
 
-        if(m_transform_map_to_base_available)
-        {
+        if(m_transform_map_to_base_available){
             //Transform base_link to sample
             tf::StampedTransform transform_base_to_sample;
             transform_base_to_sample.setOrigin(tf::Vector3(config(0),config(1), 0.0));
@@ -414,27 +385,21 @@ bool FeasibilityChecker::isConfigValid(KDL::JntArray config, bool print_contacts
 	    ROS_INFO_STREAM("Config in map frame");
             //cout << goal_pose_base.matrix() << endl << endl;
             ROS_INFO_STREAM(config(0)<<"  "<<config(1)<<"  "<<config(2));
-        }
-	else
-	{
-		ROS_ERROR("No map to base_link transform available");
-	}
+        } else {
+		    ROS_ERROR("No map to base_link transform available");
+	    }
     }
-
-
     //++++++++++ END: TESTING ++++++++++
 
 
     //Set up Map storing the configuration of manipulator
     std::map<std::string, double> configuration;
-    for (int i = 0; i < m_num_joints ; i++)
-    {
+    for (int i = 0; i < m_num_joints ; i++){
         configuration[m_joint_names[i]] = config(i);
         //std::cout<<m_joint_names[i] <<": "<<configuration[m_joint_names[i]]<<std::endl;
     }
 
-    if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh")
-    {
+    if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh"){
         configuration["sdh2_finger_12_joint"] = -1.57;
         configuration["sdh2_finger_22_joint"] = -1.57;
         configuration["sdh2_thumb_2_joint"] = -1.57;
@@ -482,10 +447,6 @@ bool FeasibilityChecker::isConfigValid(KDL::JntArray config, bool print_contacts
     //Check for collisions
     scene->checkCollision(collision_request, collision_result, state, acm);
 
-
-    //Print collision checking results
-    //ROS_INFO_STREAM("Current state is " << (collision_result.collision ? "in" : "not in") << " self collision");
-
     //Write result of collision check to console
     if (collision_result.collision == 1)
     {
@@ -501,12 +462,7 @@ bool FeasibilityChecker::isConfigValid(KDL::JntArray config, bool print_contacts
         return isValid;
     }
 
-
-    //Check whether config is valid
-    if (isValid == true)
-    {
-        //std::cout<< "Config is collision-free"<< std::endl;
-    }
+    ROS_INFO_STREAM("Current state is " << (collision_result.collision ? "in" : "not in") << " self collision. isValid: " << isValid);
 
     return isValid;
 }
