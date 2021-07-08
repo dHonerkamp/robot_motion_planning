@@ -193,36 +193,12 @@ void FeasibilityChecker::setPlanningSceneServiceName(string service_name)
 
 
 //Check whether an tree node config is valid (i.e. whether it is Collision-Free)
-bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contacts)
-{
-    //Set name of planning scene service
-    const std::string PLANNING_SCENE_SERVICE = m_planning_scene_service;
-
-    //Get curent planning scene
-    m_planning_scene_monitor->requestPlanningSceneState(PLANNING_SCENE_SERVICE);
-    planning_scene_monitor::LockedPlanningSceneRW ps(m_planning_scene_monitor);
-    ps->getCurrentStateNonConst().update();
-    //if you want to modify it
-    planning_scene::PlanningScenePtr scene = ps->diff();
-    scene->decoupleParent();
-
-    //Collision checking Setup
-    collision_detection::CollisionRequest collision_request;
-    collision_request.group_name = m_planning_group;
-    collision_detection::CollisionResult collision_result;
-    collision_detection::AllowedCollisionMatrix acm = scene->getAllowedCollisionMatrix();
-
-    //For contact information
-    collision_request.contacts = print_contacts;
-    collision_request.max_contacts = 1000;
-
-    bool isValid = true;
-
+bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contacts){
     //++++++++++ START: TESTING ++++++++++
 
     //Transform base config to /map frame only when localization is active (acml package)
     if(m_planning_frame == "/map" && m_num_joints_prismatic >= 2 && m_num_joints_revolute >= 1){
-    	//cout<<"Name of Planning frame: "<<m_planning_frame<<endl;
+        //cout<<"Name of Planning frame: "<<m_planning_frame<<endl;
 
         if(m_transform_map_to_base_available){
             //Transform base_link to sample
@@ -257,24 +233,41 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
         configuration[m_joint_names[i]] = config[i];
         //std::cout<<m_joint_names[i] <<": "<<configuration[m_joint_names[i]]<<std::endl;
     }
-
     if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh"){
         configuration["sdh2_finger_12_joint"] = -1.57;
         configuration["sdh2_finger_22_joint"] = -1.57;
         configuration["sdh2_thumb_2_joint"] = -1.57;
     }
 
+    //Get current planning scene
+    const std::string PLANNING_SCENE_SERVICE = m_planning_scene_service;
+    m_planning_scene_monitor->requestPlanningSceneState(PLANNING_SCENE_SERVICE);
+    planning_scene_monitor::LockedPlanningSceneRW ps(m_planning_scene_monitor);
+    ps->getCurrentStateNonConst().update();
+    //if you want to modify it
+    planning_scene::PlanningScenePtr scene = ps->diff();
+    scene->decoupleParent();
+
+    //Collision checking Setup
+    collision_detection::CollisionRequest collision_request;
+    collision_request.group_name = m_planning_group;
+    collision_detection::CollisionResult collision_result;
+    collision_detection::AllowedCollisionMatrix acm = scene->getAllowedCollisionMatrix();
+
+    //For contact information
+    collision_request.contacts = print_contacts;
+    collision_request.max_contacts = 1000;
+
+    bool isValid = true;
+
     //Assign the robot state to the Kinematic Model
     //robot_state::RobotState state(scene->getRobotModel());
     robot_state::RobotState state = scene->getCurrentStateNonConst();
     state.setToDefaultValues();
-
     //Set Configuration of robot state
     state.setVariablePositions(configuration);
-
     //Apply robot state to planning scene
     scene->setCurrentState(state);
-
 
 //    robot_state::RobotState state_test = scene->getCurrentStateNonConst();
 //    double *curr_state  = state_test.getVariablePositions();
@@ -283,24 +276,18 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
 //    cout<<curr_state[2]<<endl;
 
     // -------------------------------- Collision checking -------------------------------------
-    //Clear the collision checking result
-    collision_result.clear();
-
     //Check for collisions
+    collision_result.clear();
     scene->checkCollision(collision_request, collision_result, state, acm);
 
-    //Write result of collision check to console
     if (collision_result.collision == 1){
         isValid = false;
         //std::cout<< "Config is in self-collision or in collision with an obstacle"<< std::endl;
-
         for(collision_detection::CollisionResult::ContactMap::const_iterator it = collision_result.contacts.begin(); it != collision_result.contacts.end();  ++it){
             ROS_INFO_STREAM("Contact between: " <<it->first.first.c_str()<<" and " <<it->first.second.c_str());
         }
     }
-
     ROS_INFO_STREAM("Current state is " << (collision_result.collision ? "in" : "not in") << " self collision. isValid: " << isValid);
-
     return isValid;
 }
 
