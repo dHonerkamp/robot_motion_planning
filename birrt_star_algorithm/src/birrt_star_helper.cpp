@@ -30,7 +30,7 @@ namespace birrthelper {
         scene_pub.publish(psmsg);
     }
 
-    void visualiseResult(birrt_star_motion_planning::BiRRTstarPlanner planner) {
+    void visualiseResult(birrt_star_motion_planning::BiRRTstarPlanner planner, int n_loops) {
         ros::NodeHandle nh;
 
         vector <vector<double>> joint_trajectory = planner.getJointTrajectory();
@@ -61,7 +61,8 @@ namespace birrthelper {
 
         int step = 5;
 
-        while (true) {
+        int loop = 0;
+        while (loop < n_loops) {
             for (int i = 0; i < joint_trajectory.size(); i += step) {
                 vector<double> joint_values = joint_trajectory[i];
                 map<string, double> nvalues;
@@ -74,6 +75,7 @@ namespace birrthelper {
                 ros::Duration(0.05).sleep();
             }
             ros::Duration(0.5).sleep();
+            loop ++;
         }
     }
 
@@ -89,7 +91,8 @@ namespace birrthelper {
                                     const int &max_iterations_time,
                                     const bool &max_iterations_or_time,
                                     const bool &rviz_show_tree,
-                                    const double &iteration_sleep_time) {
+                                    const double &iteration_sleep_time,
+                                    const int &n_loops) {
         int blub = 0;
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
 
@@ -111,7 +114,8 @@ namespace birrthelper {
                             max_iterations_time,
                             max_iterations_or_time,
                             rviz_show_tree,
-                            iteration_sleep_time);
+                            iteration_sleep_time,
+                            n_loops);
     }
 
     map<string, double> runScenario(const string &planning_group,
@@ -125,7 +129,8 @@ namespace birrthelper {
                                     const int &max_iterations_time,
                                     const bool &max_iterations_or_time,
                                     const bool &rviz_show_tree,
-                                    const double &iteration_sleep_time) {
+                                    const double &iteration_sleep_time,
+                                    const int &n_loops) {
         int blub = 0;
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
 
@@ -146,7 +151,8 @@ namespace birrthelper {
                             max_iterations_time,
                             max_iterations_or_time,
                             rviz_show_tree,
-                            iteration_sleep_time);
+                            iteration_sleep_time,
+                            n_loops);
     }
 
 
@@ -157,7 +163,8 @@ namespace birrthelper {
                                      const int &max_iterations_time,
                                      const bool &max_iterations_or_time,
                                      const bool &rviz_show_tree,
-                                     const double &iteration_sleep_time) {
+                                     const double &iteration_sleep_time,
+                                     const int &n_loops) {
         initialised_planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
 
         //Activate the constraint
@@ -193,7 +200,7 @@ namespace birrthelper {
         cout << "..... Planner finished" << endl;
 
         if (success && rviz_show_tree) {
-            visualiseResult(initialised_planner);
+            visualiseResult(initialised_planner, n_loops);
         }
 
         return initialised_planner.getMetrics();
