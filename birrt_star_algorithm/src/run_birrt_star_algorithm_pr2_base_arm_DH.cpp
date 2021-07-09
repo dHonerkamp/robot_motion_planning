@@ -32,7 +32,7 @@ int main(int argc, char** argv)
 
     //Set default values
     int SEARCH_SPACE = 1;
-    int MAX_ITERATIONS_TIME = 75;
+    int MAX_ITERATIONS_TIME = 200;
     bool MAX_ITERATIONS_OR_TIME = 1;
     bool RVIZ_SHOW_TREE = 1;
     double ITERATION_SLEEP_TIME = 0.0;

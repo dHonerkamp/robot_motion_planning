@@ -45,10 +45,10 @@ class FeasibilityChecker
 	void setCollisionCheckingStepWidth(double step_width);
 	
 	//Checking an Edge of for collisions with obstacles
-    bool isEdgeValid(Edge tree_edge, bool print_contacts = false);
-    bool isEdgeValid(Edge tree_edge, int &last_valid_node_idx, bool print_contacts = false);
+    bool isEdgeValid(Edge tree_edge, bool print_contacts = false, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    bool isEdgeValid(Edge tree_edge, int &last_valid_node_idx, bool print_contacts = false, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Checking a Config for collisions with obstacles
-    bool isConfigValid(vector<double> config, bool print_contacts = false);
+    bool isConfigValid(vector<double> config, bool print_contacts = false, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     bool isConfigValid(KDL::JntArray config, bool print_contacts = false);
 
     //Get the current transform map to base_link

@@ -26,11 +26,11 @@ namespace birrthelper {
         psmsg.robot_state.is_diff = true;
         psmsg.is_diff = true;
 
-        ros::Publisher scene_pub = nh.advertise<moveit_msgs::PlanningScene>(ns_prefix_robot + "planning_scene", 10);;
+        ros::Publisher scene_pub = nh.advertise<moveit_msgs::PlanningScene>(ns_prefix_robot + "planning_scene", 10);
         scene_pub.publish(psmsg);
     }
 
-    void visualiseResult(birrt_star_motion_planning::BiRRTstarPlanner planner, int n_loops) {
+    void visualiseResult(birrt_star_motion_planning::BiRRTstarPlanner planner, int n_loops, std::map<std::string, double> extra_configuration) {
         ros::NodeHandle nh;
 
         vector <vector<double>> joint_trajectory = planner.getJointTrajectory();
@@ -55,17 +55,24 @@ namespace birrthelper {
 
         vector <string> joint_names = planner.getJointNames();
 
-        for (int i = 0; i < joint_names.size(); i++) {
-            cout << joint_names[i] << std::endl;
+//        for (int i = 0; i < joint_names.size(); i++) {
+//            cout << joint_names[i] << std::endl;
+//        }
+
+        map<string, double> nvalues;
+        // apply any additional configuration values (such as position of the other arm)
+        for (auto const& x : extra_configuration){
+            // only add these if they do not belong to m_joint_names
+            if (std::find(joint_names.begin(), joint_names.end(), x.first) == joint_names.end()) {
+                nvalues[x.first] = x.second;
+            }
         }
 
         int step = 5;
-
         int loop = 0;
         while (loop < n_loops) {
             for (int i = 0; i < joint_trajectory.size(); i += step) {
                 vector<double> joint_values = joint_trajectory[i];
-                map<string, double> nvalues;
                 assert(joint_names.size() == joint_values.size());
                 for (int ii = 0; ii < joint_names.size(); ++ii) {
                     nvalues[joint_names[ii]] = joint_values[ii];
@@ -122,6 +129,7 @@ namespace birrthelper {
                                     const vector<double> &env_size_x,
                                     const vector<double> &env_size_y,
                                     const vector<double> &start_conf,
+                                    const std::map<std::string, double> &extra_configuration,
                                     const vector<double> &ee_goal_pose,
                                     const vector<int> &constraint_vec_goal_pose,
                                     const vector <pair<double, double>> &target_coordinate_dev,
@@ -139,7 +147,8 @@ namespace birrthelper {
                                                       ee_goal_pose,
                                                       constraint_vec_goal_pose,
                                                       target_coordinate_dev,
-                                                      search_space);
+                                                      search_space,
+                                                      extra_configuration);
         if (!initialisation_ok){
             map<string, double> m;
             return m;
@@ -152,7 +161,8 @@ namespace birrthelper {
                             max_iterations_or_time,
                             rviz_show_tree,
                             iteration_sleep_time,
-                            n_loops);
+                            n_loops,
+                            extra_configuration);
     }
 
 
@@ -164,7 +174,8 @@ namespace birrthelper {
                                      const bool &max_iterations_or_time,
                                      const bool &rviz_show_tree,
                                      const double &iteration_sleep_time,
-                                     const int &n_loops) {
+                                     const int &n_loops,
+                                     const std::map<std::string, double> &extra_configuration) {
         initialised_planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
 
         //Activate the constraint
@@ -200,7 +211,7 @@ namespace birrthelper {
         cout << "..... Planner finished" << endl;
 
         if (success && rviz_show_tree) {
-            visualiseResult(initialised_planner, n_loops);
+            visualiseResult(initialised_planner, n_loops, extra_configuration);
         }
 
         return initialised_planner.getMetrics();

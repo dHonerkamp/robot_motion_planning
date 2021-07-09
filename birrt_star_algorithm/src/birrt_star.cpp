@@ -361,7 +361,13 @@ BiRRTstarPlanner::~BiRRTstarPlanner()
 }
 
 
-bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goal_pose, vector<double> start_conf, vector<double> goal_conf, int search_space){
+bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
+                             vector<double> ee_goal_pose,
+                             vector<double> start_conf,
+                             vector<double> goal_conf,
+                             int search_space,
+                             std::map<std::string, double> extra_configuration) {
+    m_extra_configuration = extra_configuration;
     //Check dimension of config
     if(start_conf.size() != m_num_joints || goal_conf.size() != m_num_joints) {
         ROS_ERROR("Dimension of configuration vector does not match number of joints in planning group: %i num_joints vs size %i of passed in start_conf", (int)m_num_joints, (int)start_conf.size());
@@ -375,12 +381,13 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
 
     //Check start and goal config for validity
     bool print_contacts = true;
-    bool start_conf_valid = m_FeasibilityChecker->isConfigValid(start_conf, print_contacts);
+    bool start_conf_valid = m_FeasibilityChecker->isConfigValid(start_conf, print_contacts, extra_configuration);
     if(start_conf_valid == false){
         ROS_ERROR("Start configuration is invalid!!!");
         return false;
     }
-    bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf, print_contacts);
+    // TODO: should prob. also take the extra_configuration into account when sampling the goal config
+    bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf, print_contacts, extra_configuration);
     if (goal_conf_valid == false){
         ROS_ERROR("Goal configuration is invalid!!!");
         return false;
@@ -572,8 +579,7 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose, vector<double> ee_goa
 }
 
 //Initialize RRT* Planner (reading start and goal config from file)
-bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_space)
-{
+bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_space, std::map<std::string, double> extra_configuration){
     //Read Start and Goal Configuration from File
     vector<double> start_conf, goal_conf;
     bool read_ok = readStartGoalConfig(start_goal_config_file,start_conf,goal_conf);
@@ -593,12 +599,11 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
     vector<double> ee_start_pose = computeEEPose(start_configuration);
     vector<double> ee_goal_pose = computeEEPose(goal_configuration);
 
-    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space);
+    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space, extra_configuration);
 }
 
 //Initialize RRT* Planner (given start and config)
-bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space)
-{
+bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration){
     //Convert start and goal configuration into KDL Joint Array
     KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
     KDL::JntArray goal_configuration = m_RobotMotionController->Vector_to_JntArray(goal_conf);
@@ -606,13 +611,12 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
     vector<double> ee_start_pose = computeEEPose(start_configuration);
     vector<double> ee_goal_pose = computeEEPose(goal_configuration);
 
-    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space);
+    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space, extra_configuration);
 }
 
 
 //Initialize RRT* Planner (given start config and final endeffector pose)
-bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space)
-{
+bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
     //Note: ee_goal_pose represents the end-effector goal pose with respect to the "base_link"
 
     //Convert XYZ euler orientation of goal pose to quaternion
@@ -636,13 +640,12 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     //Find endeffector pose for start configuration
     vector<double> ee_start_pose = computeEEPose(start_configuration);
 
-    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space);
+    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space, extra_configuration);
 }
 
 
 //Initialize RRT* Planner (given start and final endeffector pose)
-bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space)
-{
+bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
 
     //Note: ee_start_pose and ee_goal_pose represents the end-effector pose with respect to the "base_link"
 
@@ -681,12 +684,12 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
     //Find configuration for endeffector goal pose (using ik_sol_ee_start_pose as mean config for init_config sampling)
     //Note: -> Gaussian sampling for initial config is only performed for revolute joints
     //      -> Initial values for prismatic joint are sampled uniformly from their respective joint range)
-    vector<double> ik_sol_ee_goal_pose = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, true);
+    vector<double> ik_sol_ee_goal_pose = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, true, extra_configuration);
 
     //Find configuration for endeffector start pose
-    vector<double> ik_sol_ee_start_pose = findIKSolution(start_ee_pose_quat_orient, constraint_vec_start_pose, coordinate_dev, ik_sol_ee_goal_pose, true);
+    vector<double> ik_sol_ee_start_pose = findIKSolution(start_ee_pose_quat_orient, constraint_vec_start_pose, coordinate_dev, ik_sol_ee_goal_pose, true, extra_configuration);
 
-    return _init(start_ee_pose_quat_orient, goal_ee_pose_quat_orient, ik_sol_ee_start_pose, ik_sol_ee_goal_pose, search_space);
+    return _init(start_ee_pose_quat_orient, goal_ee_pose_quat_orient, ik_sol_ee_start_pose, ik_sol_ee_goal_pose, search_space, extra_configuration);
 }
 
 
@@ -1220,6 +1223,8 @@ string BiRRTstarPlanner::getPlanningFrameFromSRDF(string robot_desciption_param)
     const std::vector< srdf::Model::VirtualJoint > &virtual_joint = srdf_robot->getVirtualJoints();
     planning_frame =  "/" + virtual_joint[0].parent_frame_;
 
+    ROS_INFO("planning frame: %s", planning_frame.c_str());
+
     return planning_frame;
 }
 
@@ -1374,7 +1379,7 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
             Edge e_new;
             kuka_motion_controller::Status tree_extend_state = connectNodesControl(tree_A, nn_node, x_rand, x_new, e_new);
             //Check validity of edge connecting nn_node to x_rand
-            bool tree_extend_NN = m_FeasibilityChecker->isEdgeValid(e_new);
+            bool tree_extend_NN = m_FeasibilityChecker->isEdgeValid(e_new, false, m_extra_configuration);
 
 
             //Set cost to reach new node to large value in order to allow near vertices to connect to the new node
@@ -2542,7 +2547,7 @@ vector<double> BiRRTstarPlanner::computeEEPose(KDL::JntArray start_conf)
 
 
 //Compute IK for given endeffector goal pose
-vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, bool show_motion){
+vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, bool show_motion, std::map<std::string, double> extra_configuration){
     //Init configuration validity
     bool collision_free = false;
 
@@ -2552,6 +2557,8 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
 
     //Run numerical IK Solver
     vector<double> ik_solution;
+    int max_iter = 50;
+    int current_iter = 0;
     while (collision_free == false) {
         //Output joint and endeffector trajectory from controller
         vector<vector<double> > joint_trajectory;
@@ -2582,13 +2589,18 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
             cout << "EE Pose reached ..." << endl;
 
             //Check is it is collision free
-            if (m_FeasibilityChecker->isConfigValid(ik_solution, true)) {
+            if (m_FeasibilityChecker->isConfigValid(ik_solution, true, extra_configuration)) {
                 collision_free = true;
                 cout << "... and valid!" << endl;
             } else {
                 cout << "... but invalid!" << endl;
             }
         }
+        if (current_iter == max_iter){
+            ROS_INFO("Unreachable goal pose: %f, %f, %f, %f, %f, %f, %f", goal_ee_pose[0], goal_ee_pose[1], goal_ee_pose[2], goal_ee_pose[3], goal_ee_pose[4], goal_ee_pose[5], goal_ee_pose[6]);
+            throw std::runtime_error("Reached max iter without finding an ik solution");
+        }
+        current_iter++;
     }
     
     //Return last configuration of joint trajectory (placing the EE at the goal_ee_pose)
@@ -2597,7 +2609,7 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
 
 
 //Compute IK for given endeffector goal pose (given a specific initial config)
-vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, vector<double> mean_init_config, bool show_motion) {
+vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, vector<double> mean_init_config, bool show_motion, std::map<std::string, double> extra_configuration) {
     //Init configuration validity
     bool collision_free = false;
 
@@ -2610,6 +2622,8 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
 
     //Run numerical IK Solver
     vector<double> ik_solution;
+    int max_iter = 50;
+    int current_iter = 0;
     while (collision_free == false) {
         //Output joint and endeffector trajectory from controller
         vector<vector<double> > joint_trajectory;
@@ -2649,7 +2663,7 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
             cout<<"EE Pose reached ..."<<endl;
 
             //Check is it is collision free
-            if(m_FeasibilityChecker->isConfigValid(ik_solution,true)) {
+            if(m_FeasibilityChecker->isConfigValid(ik_solution,true, extra_configuration)) {
                 collision_free = true;
                 cout<<"... and valid!"<<endl;
             } else
@@ -2657,6 +2671,12 @@ vector<double> BiRRTstarPlanner::findIKSolution(vector<double> goal_ee_pose, vec
         } else {
             cout<<"Failed to reach EE Pose!"<<endl;
         }
+
+        if (current_iter == max_iter){
+            ROS_INFO("Unreachable goal pose: %f, %f, %f, %f, %f, %f, %f", goal_ee_pose[0], goal_ee_pose[1], goal_ee_pose[2], goal_ee_pose[3], goal_ee_pose[4], goal_ee_pose[5], goal_ee_pose[6]);
+            throw std::runtime_error("Reached max iter without finding an ik solution, sampling from mean_config");
+        }
+        current_iter++;
     }
 
     //Return last configuration of joint trajectory (placing the EE at the goal_ee_pose)
@@ -2885,7 +2905,7 @@ bool BiRRTstarPlanner::expandTree(Rrt_star_tree *tree, Node nn_node, Node x_rand
                 //Project sample onto constraint manifold
                 bool projection_succeed = m_RobotMotionController->run_config_retraction(exp_node_towards_rand_node.config, m_task_frame, m_grasp_transform, m_constraint_vector, m_coordinate_dev, m_max_projection_iter);
 
-                if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_rand_node.config))
+                if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_rand_node.config, false, m_extra_configuration))
                 {
 
                     //Check if config retraction has projected the expanded config back onto the config of the near node "nn_node"
@@ -2913,7 +2933,7 @@ bool BiRRTstarPlanner::expandTree(Rrt_star_tree *tree, Node nn_node, Node x_rand
 
 
                     //Check edge from current nn_node to exp_node_towards_rand_node for validity (EE constraints + collision check)
-                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                     {
 
                         //Modify node data
@@ -2962,7 +2982,7 @@ bool BiRRTstarPlanner::expandTree(Rrt_star_tree *tree, Node nn_node, Node x_rand
                 bool connection_result = connectNodesInterpolation(tree, nn_node, x_rand, m_num_traj_segments_interp, gen_node, gen_edge);
 
                 //Check edge from x_connect to exp_node_towards_rand_node for validity (collision check)
-                if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                 {
                     //Modify node data
                     gen_node.node_id = num_nodes_tree; //reset node ID using local nodes counter
@@ -3037,7 +3057,7 @@ bool BiRRTstarPlanner::expandTree(Rrt_star_tree *tree, Node nn_node, Node x_rand
             //cout<<"Edge has: "<<e_new.joint_trajectory.size()<<" configs"<<endl;
 
             //Set flag to true if edge between nn_node and extend_node is collision-free
-            tree_extend_NN = m_FeasibilityChecker->isEdgeValid(e_new);
+            tree_extend_NN = m_FeasibilityChecker->isEdgeValid(e_new, false, m_extra_configuration);
 
             //Variable for timer
             //gettimeofday(&m_timer, NULL);
@@ -3072,7 +3092,7 @@ bool BiRRTstarPlanner::expandTree(Rrt_star_tree *tree, Node nn_node, Node x_rand
             //Index of last valid node (when edge is invalid)
             int index_last_valid_node = 0;
             //Set flag to true if via nodes between nn_node and x_rand are collision-free
-            m_FeasibilityChecker->isEdgeValid(e_new, index_last_valid_node);
+            m_FeasibilityChecker->isEdgeValid(e_new, index_last_valid_node, false, m_extra_configuration);
 
             //Add via edges and nodes to the last valid config along the edge connecting nn_node and x_rand
             // Note: Last valid Node can be also x_rand itself (i.e. entire edge is valid)
@@ -3184,7 +3204,7 @@ void BiRRTstarPlanner::connectGraphsControl(Rrt_star_tree *tree, Node x_connect,
         //Check validity of edge connecting nn_ndoe to x_rand
         if(solution_cost < cost_solution_path)
         {
-            if(m_FeasibilityChecker->isEdgeValid(gen_edge))
+            if(m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
             {
                 //Set solution path cost (will be probably improved by on of the near nodes, see code below)
                 cost_solution_path = solution_cost;
@@ -3228,7 +3248,7 @@ void BiRRTstarPlanner::connectGraphsControl(Rrt_star_tree *tree, Node x_connect,
 
                     if(extend_result == kuka_motion_controller::REACHED)
                     {
-                        if(m_FeasibilityChecker->isEdgeValid(ext_edge))
+                        if(m_FeasibilityChecker->isEdgeValid(ext_edge, false, m_extra_configuration))
                         {
                             //Set Node ID
                             node_selected = ext_node;
@@ -3280,7 +3300,7 @@ void BiRRTstarPlanner::connectGraphsControl(Rrt_star_tree *tree, Node x_connect,
                if(solution_cost < cost_solution_path)
                 {
                     //Only if edge to x_new is valid
-                    if(m_FeasibilityChecker->isEdgeValid(gen_edge))
+                    if(m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                     {
                         //Update solution path cost
                         cost_solution_path = solution_cost;
@@ -3322,7 +3342,7 @@ void BiRRTstarPlanner::connectGraphsControl(Rrt_star_tree *tree, Node x_connect,
 
                                 if(extend_result == kuka_motion_controller::REACHED)
                                 {
-                                    if(m_FeasibilityChecker->isEdgeValid(ext_edge))
+                                    if(m_FeasibilityChecker->isEdgeValid(ext_edge, false, m_extra_configuration))
                                     {
                                         //Set Node ID
                                         node_selected = ext_node;
@@ -3483,7 +3503,7 @@ void BiRRTstarPlanner::connectGraphsInterpolation(Rrt_star_tree *tree, Node x_co
             //Index of last valid node (when edge is invalid)
             int index_last_valid_node = 0;
             //Check validity of edge connecting nn_node to x_new
-            if(m_FeasibilityChecker->isEdgeValid(gen_edge, index_last_valid_node))
+            if(m_FeasibilityChecker->isEdgeValid(gen_edge, index_last_valid_node, false, m_extra_configuration))
             {
                 //Set solution path cost (will be probably improved by on of the near nodes, see code below)
                 cost_solution_path[0] = solution_cost[0];   //total
@@ -3674,7 +3694,7 @@ void BiRRTstarPlanner::connectGraphsInterpolation(Rrt_star_tree *tree, Node x_co
                         //Index of last valid node (when edge is invalid)
                         int index_last_valid_node = 0;
                         //Only if edge to x_new is valid
-                        if(m_FeasibilityChecker->isEdgeValid(ext_edge, index_last_valid_node))
+                        if(m_FeasibilityChecker->isEdgeValid(ext_edge, index_last_valid_node, false, m_extra_configuration))
                         {
 //                            cout<<tree->name<<endl;
 //                            cout<<tree->nodes[near_nodes[nv]].config[0]<<" "<<tree->nodes[near_nodes[nv]].config[1]<<endl;
@@ -3912,7 +3932,7 @@ void BiRRTstarPlanner::connectGraphsInterpolation(Rrt_star_tree *tree, Node x_co
                 //Project sample onto constraint manifold
                 bool projection_succeed = m_RobotMotionController->run_config_retraction(exp_node_towards_tree_A.config, m_task_frame, m_grasp_transform, m_constraint_vector, m_coordinate_dev, m_max_projection_iter);
 
-                if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_tree_A.config))
+                if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_tree_A.config, false, m_extra_configuration))
                 {
 
                     //Check if config retraction has projected the expanded config back onto the config of the near node "x_connect"
@@ -3944,7 +3964,7 @@ void BiRRTstarPlanner::connectGraphsInterpolation(Rrt_star_tree *tree, Node x_co
                     bool connection_result = connectNodesInterpolation(tree, x_connect, exp_node_towards_tree_A, m_num_traj_segments_interp, gen_node, gen_edge);
 
                     //Check edge from x_connect to exp_node_towards_tree_A for validity (collision check)
-                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                     {
                         //KDL::JntArray projected_sample = m_RobotMotionController->Vector_to_JntArray(exp_node_towards_tree_A.config);
                         //exp_node_towards_tree_A.ee_pose = m_KDLRobotModel->compute_FK(m_manipulator_chain,projected_sample);
@@ -4009,7 +4029,7 @@ void BiRRTstarPlanner::connectGraphsInterpolation(Rrt_star_tree *tree, Node x_co
                 if(solution_cost[0] < cost_solution_path[0])
                 {
                     //Check edge from x_connect to exp_node_towards_tree_A for validity (collision check)
-                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                     {
                         //cout<<"sample reached"<<endl;
                         //cout<<endl;
@@ -4999,8 +5019,7 @@ vector<double> BiRRTstarPlanner::sampleJointConfig_Vector(vector<double> mean_co
 
     }
 
-    for(int i = 0 ; i < m_num_joints ; i++)
-    {
+    for (int i = 0; i < m_num_joints; i++) {
         //cout<<rand_sample(i)<<endl;
         rand_conf_vec[i] = rand_sample(i);
     }
@@ -5634,7 +5653,7 @@ bool BiRRTstarPlanner::choose_node_parent_control(Rrt_star_tree *tree, vector<in
                 if(gen_node.cost_reach.total <= x_new.cost_reach.total)
                 {
                     //Only if edge to x_new is valid
-                    if(m_FeasibilityChecker->isEdgeValid(gen_edge))
+                    if(m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                     {
                         //A parent for the new node has been found
                         parent_found = true;
@@ -5724,7 +5743,7 @@ bool BiRRTstarPlanner::choose_node_parent_interpolation(Rrt_star_tree *tree, vec
                {
                     //Only if edge to x_new is valid
                     int last_valid_node_idx = 0; //Not used but required by m_FeasibilityChecker->isEdgeValid-Function
-                    if(m_FeasibilityChecker->isEdgeValid(gen_edge,last_valid_node_idx))
+                    if(m_FeasibilityChecker->isEdgeValid(gen_edge,last_valid_node_idx, false, m_extra_configuration))
                     {
                         //A parent for the new node has been found
                         parent_found = true;
@@ -5875,7 +5894,7 @@ bool BiRRTstarPlanner::choose_node_parent_interpolation(Rrt_star_tree *tree, vec
                        bool projection_succeed = m_RobotMotionController->run_config_retraction(exp_node_towards_x_new.config, m_task_frame, m_grasp_transform, m_constraint_vector, m_coordinate_dev, m_max_projection_iter);
 
 
-                       if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_x_new.config))
+                       if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_x_new.config, false, m_extra_configuration))
                        {
                            //Check if config retraction has projected the expanded config back onto the config of the near node "curr_x_near"
                            // -> In this case the expansion is stuck, because each projected sample/config will be identical to the config of "curr_x_near"
@@ -5903,7 +5922,7 @@ bool BiRRTstarPlanner::choose_node_parent_interpolation(Rrt_star_tree *tree, vec
                            bool connection_result = connectNodesInterpolation(tree, curr_x_near, exp_node_towards_x_new, m_num_traj_segments_interp, gen_node, gen_edge);
 
                            //Check edge from curr_x_near to exp_node_towards_x_new for validity (collision check)
-                           if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                           if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                            {
 
                                //Modify node data
@@ -5955,7 +5974,7 @@ bool BiRRTstarPlanner::choose_node_parent_interpolation(Rrt_star_tree *tree, vec
                        if(gen_node.cost_reach.total <= x_new.cost_reach.total)
                        {
                            //Check edge from curr_x_near to exp_node_towards_x_new for validity (collision check)
-                           if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                           if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                            {
                                //A parent for the new node has been found
                                parent_found = true;
@@ -6279,7 +6298,7 @@ void BiRRTstarPlanner::rewireTreeInterpolation(Rrt_star_tree *tree, vector<int> 
 
                         //If edge from x_new to near vertex is valid
                         //int last_valid_node_idx = 0; //Not used but required by m_FeasibilityChecker->isEdgeValid-Function
-                        if(m_FeasibilityChecker->isEdgeValid(gen_edge))
+                        if(m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                         {
                             //cout<<"Rewire: Lower cost found!!!"<<endl;
 
@@ -6502,7 +6521,7 @@ void BiRRTstarPlanner::rewireTreeInterpolation(Rrt_star_tree *tree, vector<int> 
                             //double time_collision_check_start = m_timer.tv_sec+(m_timer.tv_usec/1000000.0);
 
                             //Check whether projection succeded and whether the resulting config is valid
-                            if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_x_near.config))
+                            if(projection_succeed == true && m_FeasibilityChecker->isConfigValid(exp_node_towards_x_near.config, false, m_extra_configuration))
                             {
 
                                 //Get time elapsed
@@ -6560,7 +6579,7 @@ void BiRRTstarPlanner::rewireTreeInterpolation(Rrt_star_tree *tree, vector<int> 
                                     //double time_collision_check2_start = m_timer.tv_sec+(m_timer.tv_usec/1000000.0);
 
                                     //Check edge from curr_x_new to exp_node_towards_x_near for validity (collision check)
-                                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                                    if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                                     {
                                         //Get time elapsed
                                         //gettimeofday(&m_timer, NULL);
@@ -6626,7 +6645,7 @@ void BiRRTstarPlanner::rewireTreeInterpolation(Rrt_star_tree *tree, vector<int> 
                             if(gen_node.cost_reach.total <= tree->nodes[near_vertices[nn_num]].cost_reach.total)
                             {
                                 //Check edge from curr_x_new to exp_node_towards_x_near for validity (collision check)
-                                if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge))
+                                if(connection_result == true && m_FeasibilityChecker->isEdgeValid(gen_edge, false, m_extra_configuration))
                                 {
                                     //Variable for timer
                                     //gettimeofday(&m_timer, NULL);

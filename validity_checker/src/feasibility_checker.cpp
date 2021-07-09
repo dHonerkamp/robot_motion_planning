@@ -193,7 +193,22 @@ void FeasibilityChecker::setPlanningSceneServiceName(string service_name)
 
 
 //Check whether an tree node config is valid (i.e. whether it is Collision-Free)
-bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contacts){
+bool FeasibilityChecker::isConfigValid(KDL::JntArray jnt_config, bool print_contacts){
+    if (jnt_config.rows() != m_num_joints){
+        throw std::runtime_error("Wrong size of jnt_config");
+    }
+
+    std::vector<double> config;
+    for (int i = 0; i < m_num_joints ; i++) {
+        config.push_back(jnt_config(i));
+    }
+
+    std::map<std::string, double> m;
+    return isConfigValid(config, print_contacts, m);
+}
+
+//Check whether an tree node config is valid (i.e. whether it is Collision-Free)
+bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contacts, std::map<std::string, double> extra_configuration){
     //++++++++++ START: TESTING ++++++++++
 
     //Transform base config to /map frame only when localization is active (acml package)
@@ -232,6 +247,13 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
     for (int i = 0; i < m_num_joints ; i++){
         configuration[m_joint_names[i]] = config[i];
         //std::cout<<m_joint_names[i] <<": "<<configuration[m_joint_names[i]]<<std::endl;
+    }
+    // apply any additional configuration values (such as position of the other arm)
+    for (auto const& x : extra_configuration){
+        // only add these if they do not belong to m_joint_names
+        if (std::find(m_joint_names.begin(), m_joint_names.end(), x.first) == m_joint_names.end()) {
+            configuration[x.first] = x.second;
+        }
     }
     if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh"){
         configuration["sdh2_finger_12_joint"] = -1.57;
@@ -292,32 +314,16 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
 }
 
 
-
-//Check whether an tree node config is valid (i.e. whether it is Collision-Free)
-bool FeasibilityChecker::isConfigValid(KDL::JntArray jnt_config, bool print_contacts){
-    if (jnt_config.rows() != m_num_joints){
-        throw std::runtime_error("Wrong size of jnt_config");
-    }
-
-    std::vector<double> config;
-    for (int i = 0; i < m_num_joints ; i++) {
-        config.push_back(jnt_config(i));
-    }
-
-    return isConfigValid(config, print_contacts);
-}
-
-
 //Check whether an tree edge is valid (i.e. whether all of it Configuration are Collision-Free)
 bool FeasibilityChecker::isEdgeValid(Edge tree_edge, bool print_contacts){
     int last_valid_node_idx = 0;
-    return isEdgeValid(tree_edge, last_valid_node_idx, print_contacts);
+    return isEdgeValid(tree_edge, last_valid_node_idx, print_contacts, extra_configuration);
 }
 
 
 //Check whether an tree edge is valid (i.e. whether all of it Configuration are Collision-Free)
 // -> additionally returns index of last valid node
-bool FeasibilityChecker::isEdgeValid(Edge tree_edge, int &last_valid_node_idx, bool print_contacts)
+bool FeasibilityChecker::isEdgeValid(Edge tree_edge, int &last_valid_node_idx, bool print_contacts, std::map<std::string, double> extra_configuration)
 {
     //Set name of planning scene service
     const std::string PLANNING_SCENE_SERVICE = m_planning_scene_service;
@@ -388,10 +394,16 @@ bool FeasibilityChecker::isEdgeValid(Edge tree_edge, int &last_valid_node_idx, b
 
         //Set up Map storing the configuration of manipulator
         std::map<std::string, double> configuration;
-        for (int i = 0; i < m_num_joints ; i++)
-        {
+        for (int i = 0; i < m_num_joints ; i++){
             configuration[m_joint_names[i]] = tree_edge.joint_trajectory[edp][i];
             //std::cout<<m_joint_names[i] <<": "<<configuration[m_joint_names[i]]<<std::endl;
+        }
+        // apply any additional configuration values (such as position of the other arm)
+        for (auto const& x : extra_configuration){
+            // only add these if they do not belong to m_joint_names
+            if (std::find(m_joint_names.begin(), m_joint_names.end(), x.first) == m_joint_names.end()) {
+                configuration[x.first] = x.second;
+            }
         }
 
         if (m_planning_group == "kuka_complete_arm" || m_planning_group == "omnirob_lbr_sdh")
