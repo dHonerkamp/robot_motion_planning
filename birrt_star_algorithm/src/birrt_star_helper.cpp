@@ -142,6 +142,7 @@ namespace birrthelper {
         int blub = 0;
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
 
+        ROS_INFO("Initialising planner");
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
         bool initialisation_ok = planner.init_planner(start_conf,
                                                       ee_goal_pose,

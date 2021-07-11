@@ -560,9 +560,6 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     void cost_consistency_check(Rrt_star_tree *tree);
 };
 
-
-
-
 }//end of namespace
 
 #endif // BiRRT_STAR_H

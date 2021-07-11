@@ -315,7 +315,7 @@ bool FeasibilityChecker::isConfigValid(vector<double> config, bool print_contact
 
 
 //Check whether an tree edge is valid (i.e. whether all of it Configuration are Collision-Free)
-bool FeasibilityChecker::isEdgeValid(Edge tree_edge, bool print_contacts){
+bool FeasibilityChecker::isEdgeValid(Edge tree_edge, bool print_contacts, std::map<std::string, double> extra_configuration){
     int last_valid_node_idx = 0;
     return isEdgeValid(tree_edge, last_valid_node_idx, print_contacts, extra_configuration);
 }
