@@ -374,6 +374,13 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
         return false;
     }
 
+    if (ee_start_pose.size() != 7){
+        throw std::runtime_error("ee_start_pose should be xyzXYZW");
+    }
+    if (ee_goal_pose.size() != 7){
+        throw std::runtime_error("ee_goal_pose should be xyzXYZW");
+    }
+
     //Initialize map to robot transform before performing collision checks
     if((m_planning_frame == "/map") && (!m_FeasibilityChecker->update_map_to_robot_transform())){
         ROS_INFO_STREAM("Failed to update map to robot transform in feasibility checker");
@@ -386,7 +393,6 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
         ROS_ERROR("Start configuration is invalid!!!");
         return false;
     }
-    // TODO: should prob. also take the extra_configuration into account when sampling the goal config
     bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf, print_contacts, extra_configuration);
     if (goal_conf_valid == false){
         ROS_ERROR("Goal configuration is invalid!!!");
@@ -582,24 +588,15 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
 bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_space, std::map<std::string, double> extra_configuration){
     //Read Start and Goal Configuration from File
     vector<double> start_conf, goal_conf;
-    bool read_ok = readStartGoalConfig(start_goal_config_file,start_conf,goal_conf);
-    if(read_ok == false)
-    {
+    bool read_ok = readStartGoalConfig(start_goal_config_file, start_conf, goal_conf);
+    if(read_ok == false){
         ROS_ERROR("start_goal_config_file: %s", start_goal_config_file);
         ROS_ERROR("File path to start and goal config is invalid!!!");
         ros::shutdown();
     }else{
         ROS_INFO("Start and goal config successfully read from file!!!");
     }
-
-    //Convert start and goal configuration into KDL Joint Array
-    KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
-    KDL::JntArray goal_configuration = m_RobotMotionController->Vector_to_JntArray(goal_conf);
-    //Find endeffector pose for start and goal configuration
-    vector<double> ee_start_pose = computeEEPose(start_configuration);
-    vector<double> ee_goal_pose = computeEEPose(goal_configuration);
-
-    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space, extra_configuration);
+    return init_planner(start_conf, goal_conf, search_space, extra_configuration);
 }
 
 //Initialize RRT* Planner (given start and config)
@@ -619,34 +616,39 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
 bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
     //Note: ee_goal_pose represents the end-effector goal pose with respect to the "base_link"
 
-    //Convert XYZ euler orientation of goal pose to quaternion
-    vector<double> quat_goal_pose = m_RobotMotionController->convertEulertoQuat(ee_goal_pose[3],ee_goal_pose[4],ee_goal_pose[5]);
-
+    //Find configuration for endeffector goal pose (using start_config as mean config for init_config sampling)
     //Set up goal pose with orientation expressed by quaternion
     vector<double> goal_ee_pose_quat_orient (7);
-    goal_ee_pose_quat_orient[0] = ee_goal_pose[0]; //x
-    goal_ee_pose_quat_orient[1] = ee_goal_pose[1]; //y
-    goal_ee_pose_quat_orient[2] = ee_goal_pose[2]; //z
-    goal_ee_pose_quat_orient[3] = quat_goal_pose[0];  //quat_x
-    goal_ee_pose_quat_orient[4] = quat_goal_pose[1];  //quat_y
-    goal_ee_pose_quat_orient[5] = quat_goal_pose[2];  //quat_z
-    goal_ee_pose_quat_orient[6] = quat_goal_pose[3];  //quat_w
-    //Find configuration for endeffector goal pose (using start_config as mean config for init_config sampling)
-    vector<double> goal_conf = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, start_conf, false);
-
-    //Convert start configuration into KDL Joint Array
-    KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
+    if (ee_goal_pose.size() == 7) {
+        goal_ee_pose_quat_orient = ee_goal_pose;
+    } else if (ee_goal_pose.size() == 6) {
+        goal_ee_pose_quat_orient[0] = ee_goal_pose[0]; //x
+        goal_ee_pose_quat_orient[1] = ee_goal_pose[1]; //y
+        goal_ee_pose_quat_orient[2] = ee_goal_pose[2]; //z
+        //Convert XYZ euler orientation of goal pose to quaternion
+        vector<double> quat_goal_pose = m_RobotMotionController->convertEulertoQuat(ee_goal_pose[3], ee_goal_pose[4], ee_goal_pose[5]);
+        goal_ee_pose_quat_orient[3] = quat_goal_pose[0];  //quat_x
+        goal_ee_pose_quat_orient[4] = quat_goal_pose[1];  //quat_y
+        goal_ee_pose_quat_orient[5] = quat_goal_pose[2];  //quat_z
+        goal_ee_pose_quat_orient[6] = quat_goal_pose[3];  //quat_w
+    } else {
+        throw std::runtime_error("ee_goal_pose should be length 6 or 7");
+    }
 
     //Find endeffector pose for start configuration
+    //Convert start configuration into KDL Joint Array
+    KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
     vector<double> ee_start_pose = computeEEPose(start_configuration);
 
-    return _init(ee_start_pose, ee_goal_pose, start_conf, goal_conf, search_space, extra_configuration);
+     vector<double> goal_conf = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, start_conf, false);
+//    vector<double> goal_conf = myFindIKSolution(goal_ee_pose_quat_orient, start_conf, extra_configuration);
+
+    return _init(ee_start_pose, goal_ee_pose_quat_orient, start_conf, goal_conf, search_space, extra_configuration);
 }
 
 
 //Initialize RRT* Planner (given start and final endeffector pose)
 bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
-
     //Note: ee_start_pose and ee_goal_pose represents the end-effector pose with respect to the "base_link"
 
     //Generate start and goal config
@@ -658,8 +660,6 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
 
     //Convert XYZ euler orientation of start pose to quaternion
     vector<double> quat_start_pose = m_RobotMotionController->convertEulertoQuat(ee_start_pose[3],ee_start_pose[4],ee_start_pose[5]);
-
-    //Convert XYZ euler orientation of goal pose to quaternion
     vector<double> quat_goal_pose = m_RobotMotionController->convertEulertoQuat(ee_goal_pose[3],ee_goal_pose[4],ee_goal_pose[5]);
 
     //Set up poses with orientation expressed by quaternion
@@ -680,12 +680,10 @@ bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> co
     goal_ee_pose_quat_orient[5] = quat_goal_pose[2];  //quat_z
     goal_ee_pose_quat_orient[6] = quat_goal_pose[3];  //quat_w
 
-
     //Find configuration for endeffector goal pose (using ik_sol_ee_start_pose as mean config for init_config sampling)
     //Note: -> Gaussian sampling for initial config is only performed for revolute joints
     //      -> Initial values for prismatic joint are sampled uniformly from their respective joint range)
     vector<double> ik_sol_ee_goal_pose = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, true, extra_configuration);
-
     //Find configuration for endeffector start pose
     vector<double> ik_sol_ee_start_pose = findIKSolution(start_ee_pose_quat_orient, constraint_vec_start_pose, coordinate_dev, ik_sol_ee_goal_pose, true, extra_configuration);
 
