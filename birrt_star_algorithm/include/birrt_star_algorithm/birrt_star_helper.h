@@ -9,6 +9,14 @@
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <birrt_star_algorithm/birrt_star.h>
 
+
+struct PlannerOutput {
+    map<string, double> stats;
+    vector<vector<double>> joint_trajectory;
+    vector<vector<double>> ee_trajectory;
+};
+
+
 namespace birrthelper {
     void publishRobotState(ros::NodeHandle nh,
                            planning_scene::PlanningScenePtr scene,
@@ -20,7 +28,7 @@ namespace birrthelper {
                          int n_loops,
                          std::map<std::string, double> extra_configuration = std::map<std::string, double>());
 
-    map<string, double> runScenario(const string &planning_group,
+    PlannerOutput runScenario(const string &planning_group,
                                     const vector<double> &env_size_x,
                                     const vector<double> &env_size_y,
                                     const vector<double> &start_ee_pose,
@@ -34,7 +42,7 @@ namespace birrthelper {
                                     const bool &rviz_show_tree = 1,
                                     const double &iteration_sleep_time = 0.0,
                                     const int &n_loops = 5);
-    map<string, double> runScenario(const string &planning_group,
+    PlannerOutput runScenario(const string &planning_group,
                                     const vector<double> &env_size_x,
                                     const vector<double> &env_size_y,
                                     const vector<double> &start_conf,
@@ -49,7 +57,7 @@ namespace birrthelper {
                                     const double &iteration_sleep_time = 0.0,
                                     const int &n_loops = 5);
 
-    map<string, double> _runScenario(birrt_star_motion_planning::BiRRTstarPlanner &initialised_planner,
+    PlannerOutput _runScenario(birrt_star_motion_planning::BiRRTstarPlanner &initialised_planner,
                                      const vector<double> &env_size_x,
                                      const vector<double> &env_size_y,
                                      const int &search_space,

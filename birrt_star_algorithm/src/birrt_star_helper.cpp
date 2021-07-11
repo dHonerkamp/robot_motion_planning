@@ -86,7 +86,7 @@ namespace birrthelper {
         }
     }
 
-    map<string, double> runScenario(const string &planning_group,
+    PlannerOutput runScenario(const string &planning_group,
                                     const vector<double> &env_size_x,
                                     const vector<double> &env_size_y,
                                     const vector<double> &start_ee_pose,
@@ -111,8 +111,7 @@ namespace birrthelper {
                                                       target_coordinate_dev,
                                                       search_space);
         if (!initialisation_ok){
-            map<string, double> m;
-            return m;
+            return PlannerOutput();
         }
         return _runScenario(planner,
                             env_size_x,
@@ -125,7 +124,7 @@ namespace birrthelper {
                             n_loops);
     }
 
-    map<string, double> runScenario(const string &planning_group,
+    PlannerOutput runScenario(const string &planning_group,
                                     const vector<double> &env_size_x,
                                     const vector<double> &env_size_y,
                                     const vector<double> &start_conf,
@@ -151,8 +150,7 @@ namespace birrthelper {
                                                       search_space,
                                                       extra_configuration);
         if (!initialisation_ok){
-            map<string, double> m;
-            return m;
+            return PlannerOutput();
         }
         return _runScenario(planner,
                             env_size_x,
@@ -167,7 +165,7 @@ namespace birrthelper {
     }
 
 
-    map<string, double> _runScenario(birrt_star_motion_planning::BiRRTstarPlanner &initialised_planner,
+    PlannerOutput _runScenario(birrt_star_motion_planning::BiRRTstarPlanner &initialised_planner,
                                      const vector<double> &env_size_x,
                                      const vector<double> &env_size_y,
                                      const int &search_space,
@@ -215,6 +213,11 @@ namespace birrthelper {
             visualiseResult(initialised_planner, n_loops, extra_configuration);
         }
 
-        return initialised_planner.getMetrics();
+        PlannerOutput planner_output;
+        planner_output.stats = initialised_planner.getMetrics();
+        planner_output.joint_trajectory = initialised_planner.getJointTrajectory();
+        planner_output.ee_trajectory = initialised_planner.getEndeffectorTrajectory();
+
+        return planner_output;
     }
 }
