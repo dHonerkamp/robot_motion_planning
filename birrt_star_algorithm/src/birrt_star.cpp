@@ -613,24 +613,24 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
 
 
 //Initialize RRT* Planner (given start config and final endeffector pose)
-bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
+bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_wrist_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
     //Note: ee_goal_pose represents the end-effector goal pose with respect to the "base_link"
 
     //Find configuration for endeffector goal pose (using start_config as mean config for init_config sampling)
     //Set up goal pose with orientation expressed by quaternion
-    vector<double> goal_ee_pose_quat_orient (7);
-    if (ee_goal_pose.size() == 7) {
-        goal_ee_pose_quat_orient = ee_goal_pose;
-    } else if (ee_goal_pose.size() == 6) {
-        goal_ee_pose_quat_orient[0] = ee_goal_pose[0]; //x
-        goal_ee_pose_quat_orient[1] = ee_goal_pose[1]; //y
-        goal_ee_pose_quat_orient[2] = ee_goal_pose[2]; //z
+    vector<double> goal_ee_wrist_pose_quat_orient (7);
+    if (ee_wrist_goal_pose.size() == 7) {
+        goal_ee_wrist_pose_quat_orient = ee_wrist_goal_pose;
+    } else if (ee_wrist_goal_pose.size() == 6) {
+        goal_ee_wrist_pose_quat_orient[0] = ee_wrist_goal_pose[0]; //x
+        goal_ee_wrist_pose_quat_orient[1] = ee_wrist_goal_pose[1]; //y
+        goal_ee_wrist_pose_quat_orient[2] = ee_wrist_goal_pose[2]; //z
         //Convert XYZ euler orientation of goal pose to quaternion
-        vector<double> quat_goal_pose = m_RobotMotionController->convertEulertoQuat(ee_goal_pose[3], ee_goal_pose[4], ee_goal_pose[5]);
-        goal_ee_pose_quat_orient[3] = quat_goal_pose[0];  //quat_x
-        goal_ee_pose_quat_orient[4] = quat_goal_pose[1];  //quat_y
-        goal_ee_pose_quat_orient[5] = quat_goal_pose[2];  //quat_z
-        goal_ee_pose_quat_orient[6] = quat_goal_pose[3];  //quat_w
+        tf::Quaternion q = tf::createQuaternionFromRPY(ee_wrist_goal_pose[3], ee_wrist_goal_pose[4], ee_wrist_goal_pose[5]);
+        goal_ee_wrist_pose_quat_orient[3] = q.x();  //quat_x
+        goal_ee_wrist_pose_quat_orient[4] = q.y();  //quat_y
+        goal_ee_wrist_pose_quat_orient[5] = q.x();  //quat_z
+        goal_ee_wrist_pose_quat_orient[6] = q.w();  //quat_w
     } else {
         throw std::runtime_error("ee_goal_pose should be length 6 or 7");
     }
@@ -640,10 +640,12 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
     vector<double> ee_start_pose = computeEEPose(start_configuration);
 
-     vector<double> goal_conf = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, start_conf, false);
-//    vector<double> goal_conf = myFindIKSolution(goal_ee_pose_quat_orient, start_conf, extra_configuration);
+//     vector<double> goal_conf = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, start_conf, true);
+    vector<double> goal_conf = myFindIKSolution(goal_ee_wrist_pose_quat_orient, start_conf, extra_configuration);
+//    vector<double> goal_conf = myFindIKSolution2(goal_ee_wrist_pose_quat_orient, start_conf, extra_configuration);
+    vector<double> ee_goal_pose = computeEEPose(goal_conf);
 
-    return _init(ee_start_pose, goal_ee_pose_quat_orient, start_conf, goal_conf, search_space, extra_configuration);
+    return _init(ee_start_pose, ee_wrist_goal_pose, start_conf, goal_conf, search_space, extra_configuration);
 }
 
 
@@ -2541,6 +2543,223 @@ vector<double> BiRRTstarPlanner::computeEEPose(KDL::JntArray start_conf)
 
     return ee_start_pose;
 }
+
+
+vector<double> BiRRTstarPlanner::myFindIKSolution(vector<double> goal_ee_wrist_pose,
+                                                  vector<double> start_conf,
+                                                  std::map<std::string, double> extra_configuration){
+    // Only include links until r_wrist_roll_link, o/w IK won't return exact rotations
+    string planning_group = "pr2_base_wrist";
+
+    if (goal_ee_wrist_pose.size() != 7) {
+        throw std::runtime_error("goal_ee_pose should be xyzXYZW");
+    }
+    if (start_conf.size() != m_num_joints) {
+        throw std::runtime_error("start_conf should be size m_num_joints");
+    }
+
+    string robot_description_robot;
+    m_nh.param("robot_description_robot", robot_description_robot, std::string("robot_description"));
+    string ns_prefix_robot;
+    m_nh.param("ns_prefix_robot", ns_prefix_robot, std::string(""));
+    string planning_scene_service_ns = ns_prefix_robot + "get_planning_scene";
+
+    planning_scene_monitor::PlanningSceneMonitorPtr psm;
+    psm.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_description_robot));
+    psm->requestPlanningSceneState(planning_scene_service_ns);
+    planning_scene_monitor::LockedPlanningSceneRW ps(psm);
+    ps->getCurrentStateNonConst().update();
+
+    planning_scene::PlanningScenePtr scene = ps->diff();
+    scene->decoupleParent();
+
+    robot_state::RobotState state(psm->getRobotModel());
+
+    // set the configuration we want to start the search from
+    state.setToDefaultValues();
+    std::map<std::string, double> configuration;
+    for (int i = 0; i < m_num_joints ; i++){
+        configuration[m_joint_names[i]] = start_conf[i];
+        // std::cout<<m_joint_names[i] <<": "<<configuration[m_joint_names[i]]<<std::endl;
+    }
+    // apply any additional configuration values (such as position of the other arm)
+    for (auto const& x : extra_configuration){
+        // only add these if they do not belong to m_joint_names
+        if (std::find(m_joint_names.begin(), m_joint_names.end(), x.first) == m_joint_names.end()) {
+            configuration[x.first] = x.second;
+        }
+    }
+    state.setVariablePositions(configuration);
+
+    geometry_msgs::Pose pose;
+    pose.position.x = goal_ee_wrist_pose[0];
+    pose.position.y = goal_ee_wrist_pose[1];
+    pose.position.z = goal_ee_wrist_pose[2];
+    pose.orientation.x = goal_ee_wrist_pose[3];
+    pose.orientation.y = goal_ee_wrist_pose[4];
+    pose.orientation.z = goal_ee_wrist_pose[5];
+    pose.orientation.w = goal_ee_wrist_pose[6];
+    const geometry_msgs::Pose &pose_const = pose;
+    cout<<pose_const.position.x<< ", " <<pose_const.position.y<< ", " <<pose_const.position.z<< ", " <<pose_const.orientation.x<< ", " <<pose_const.orientation.y<< ", " <<pose_const.orientation.z<< ", " <<pose_const.orientation.w<<endl;
+
+    kinematics::KinematicsQueryOptions ik_options;
+    ik_options.return_approximate_solution = false;
+
+    const robot_state::JointModelGroup* group = state.getJointModelGroup(planning_group);
+    double kinematics_solver_timeout = 15.0;
+    // const std::string &tip = "r_wrist_roll_link";
+    robot_state::RobotStatePtr state_ptr(new robot_state::RobotState(state));
+    robot_state::GroupStateValidityCallbackFn constraint_callback_fn = boost::bind(&validity_fun::validityCallbackFn, scene, state_ptr, _2, _3);
+
+    bool success = state.setFromIK(group, pose_const, kinematics_solver_timeout, constraint_callback_fn, ik_options);
+    if (!success){
+        throw std::runtime_error("myFindIKSolution: no ik solution found");
+    }
+
+    cout<<"success: " << success <<endl;
+
+    // TODO: remove again
+    scene->setCurrentState(state);
+    moveit_msgs::PlanningScene psmsg;
+    scene->getPlanningSceneMsg(psmsg);
+    psmsg.robot_state.is_diff = true;
+    psmsg.is_diff = true;
+    ros::Publisher scene_pub = m_nh.advertise<moveit_msgs::PlanningScene>(ns_prefix_robot + "planning_scene", 10);
+    scene_pub.publish(psmsg);
+//    throw std::runtime_error("TEST to show found config");
+
+    // get the right variables from the state
+    // state.copyJointGroupPositions(group, joint_values);
+    vector<double> joint_values;
+    for (int i=0; i<m_joint_names.size(); i++) {
+        joint_values.push_back(state.getVariablePosition(m_joint_names[i]));
+        // cout<<m_joint_names[i] << ": " << joint_values[i]<<endl;
+    }
+
+    return joint_values;
+}
+
+
+//// NOTE: searches a goal for the wrist, not the tip of the end-effector!
+//vector<double> BiRRTstarPlanner::myFindIKSolution2(vector<double> goal_ee_pose_wrist,
+//                                                  vector<double> start_conf,
+//                                                  std::map<std::string, double> extra_configuration){
+//    if (goal_ee_pose_wrist.size() != 7) {
+//        throw std::runtime_error("goal_ee_pose should be xyzXYZW");
+//    }
+//    if (start_conf.size() != m_num_joints) {
+//        throw std::runtime_error("start_conf should be size m_num_joints");
+//    }
+//
+//    string robot_description_robot;
+//    m_nh.param("robot_description_robot", robot_description_robot, std::string("robot_description"));
+//    string ns_prefix_robot;
+//    m_nh.param("ns_prefix_robot", ns_prefix_robot, std::string(""));
+//    string planning_scene_service_ns = ns_prefix_robot + "get_planning_scene";
+//
+//    planning_scene_monitor::PlanningSceneMonitorPtr psm;
+//    psm.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_description_robot));
+//    psm->requestPlanningSceneState(planning_scene_service_ns);
+//    planning_scene_monitor::LockedPlanningSceneRW ps(psm);
+//    ps->getCurrentStateNonConst().update();
+//
+//    planning_scene::PlanningScenePtr scene = ps->diff();
+//    scene->decoupleParent();
+//
+//    robot_state::RobotState state(psm->getRobotModel());
+//
+//    // set the configuration we want to start the search from
+//    state.setToDefaultValues();
+//    std::map<std::string, double> configuration;
+//    for (int i = 0; i < m_num_joints ; i++){
+//        configuration[m_joint_names[i]] = start_conf[i];
+//    }
+//    // apply any additional configuration values (such as position of the other arm)
+//    for (auto const& x : extra_configuration){
+//        // only add these if they do not belong to m_joint_names
+//        if (std::find(m_joint_names.begin(), m_joint_names.end(), x.first) == m_joint_names.end()) {
+//            configuration[x.first] = x.second;
+//        }
+//    }
+//    state.setVariablePositions(configuration);
+//
+//    // TODO: make hard coded values args; only works for PR2 atm
+//    // NOTE: searching solutions for larger groups (e.g. including torso or base) does not return exact solutions
+//    string planning_group_arm = "right_arm_and_torso";
+//    // sample a random base pose around the ee
+//    double min_dist = 0.2;
+//    double max_dist = 0.75;
+//    // NOTE: do not use a hardecoded seed, would always sample the same values
+//    random_numbers::RandomNumberGenerator rng{};
+//
+//    kinematics::KinematicsQueryOptions ik_options;
+//    ik_options.return_approximate_solution = false;
+//
+//    const robot_state::JointModelGroup *group = state.getJointModelGroup(planning_group_arm);
+//    double kinematics_solver_timeout = 0.1;
+//    // const std::string &tip = "r_wrist_roll_link";
+//    robot_state::RobotStatePtr state_ptr(new robot_state::RobotState(state));
+//    robot_state::GroupStateValidityCallbackFn constraint_callback_fn = boost::bind(&validity_fun::validityCallbackFn, scene, state_ptr, _2, _3);
+//
+//    geometry_msgs::Pose pose;
+//    pose.position.x = goal_ee_pose_wrist[0];
+//    pose.position.y = goal_ee_pose_wrist[1];
+//    pose.position.z = goal_ee_pose_wrist[2];
+//    pose.orientation.x = goal_ee_pose_wrist[3];
+//    pose.orientation.y = goal_ee_pose_wrist[4];
+//    pose.orientation.z = goal_ee_pose_wrist[5];
+//    pose.orientation.w = goal_ee_pose_wrist[6];
+//    const geometry_msgs::Pose &pose_const = pose;
+//
+//    int max_iter = 500;
+//    int i = 0;
+//    std::map<std::string, double> base_configuration;
+//    while (true) {
+//        cout<<i<<endl;
+//
+//        double dist = rng.uniformReal(min_dist, max_dist);
+//        double orientation = rng.uniformReal(0.0, M_PI);
+//        int rnd_sign = (rng.uniformInteger(0, 1) == 1) ? 1 : -1;
+//
+//        base_configuration["base_x_joint"] = goal_ee_pose_wrist[0] + dist * cos(orientation);
+//        base_configuration["base_y_joint"] = goal_ee_pose_wrist[1] + ((double) rnd_sign) * dist * sin(orientation);
+//        base_configuration["base_theta_joint"] = rng.uniformReal(0.0, 2 * M_PI);
+//        state.setVariablePositions(base_configuration);
+//
+//        bool success = state.setFromIK(group, pose_const, kinematics_solver_timeout, constraint_callback_fn, ik_options);
+//
+//        // TODO: remove again (or move at least out of this loop)
+//        scene->setCurrentState(state);
+//        moveit_msgs::PlanningScene psmsg;
+//        scene->getPlanningSceneMsg(psmsg);
+//        psmsg.robot_state.is_diff = true;
+//        psmsg.is_diff = true;
+//        ros::Publisher scene_pub = m_nh.advertise<moveit_msgs::PlanningScene>(ns_prefix_robot + "planning_scene", 10);
+//        scene_pub.publish(psmsg);
+//
+//        // TODO: also check if this config is in collision or not (i.e. run isConfigValid() within this loop
+//        //  -> though should actually check this in the callback fn already??
+//
+//        if (success) {
+//            break;
+//        } else if (i >= max_iter) {
+//            throw std::runtime_error("myFindIKSolution2: no ik solution found");
+//        }
+//        i++;
+//    }
+//
+//    // get the right variables from the state
+//    // state.copyJointGroupPositions(group, joint_values);
+//    vector<double> joint_values;
+//    for (int i=0; i<m_joint_names.size(); i++) {
+//        joint_values.push_back(state.getVariablePosition(m_joint_names[i]));
+////        cout<<m_joint_names[i] << ": " << joint_values[i]<<endl;
+//    }
+//
+////    throw std::runtime_error("TEST after success to show found config");
+//    return joint_values;
+//}
+
 
 
 
@@ -8692,3 +8911,83 @@ void BiRRTstarPlanner::cost_consistency_check(Rrt_star_tree *tree)
 
 } //end of namespace
 
+
+////Callback for collision checking in ik search//////////////////////
+namespace validity_fun {
+    bool validityCallbackFn(planning_scene::PlanningScenePtr &planning_scene,
+                            const robot_state::RobotStatePtr &kinematic_state,
+                            const robot_state::JointModelGroup *joint_model_group,
+                            const double *joint_group_variable_values) {
+        kinematic_state->setJointGroupPositions(joint_model_group, joint_group_variable_values);
+        // Now check for collisions
+        collision_detection::CollisionRequest collision_request;
+        collision_request.group_name = joint_model_group->getName();
+        collision_detection::CollisionResult collision_result;
+        // collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+        planning_scene->getCurrentStateNonConst().update();
+        planning_scene->checkCollisionUnpadded(collision_request, collision_result, *kinematic_state);
+        // planning_scene->checkSelfCollision(collision_request, collision_result, *kinematic_state);
+
+        if (collision_result.collision) {
+            // ROS_INFO("IK solution is in collision!");
+            return false;
+        }
+        return true;
+    }
+}  // namespace validity_fun
+
+
+namespace utils {
+    visualization_msgs::Marker markerFromTransform(tf::Transform t,
+                                                   std::string ns,
+                                                   std_msgs::ColorRGBA color,
+                                                   int marker_id,
+                                                   std::string frame_id,
+                                                   const std::string &geometry,
+                                                   tf::Vector3 marker_scale) {
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = std::move(frame_id);
+        marker.header.stamp = ros::Time();
+        marker.ns = std::move(ns);
+
+        if (geometry == "arrow") {
+            marker.type = visualization_msgs::Marker::ARROW;
+        } else if (geometry == "cube") {
+            marker.type = visualization_msgs::Marker::CUBE;
+        } else {
+            throw std::runtime_error("unknown marker geometry");
+        }
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.pose.position.x = t.getOrigin().x();
+        marker.pose.position.y = t.getOrigin().y();
+        marker.pose.position.z = t.getOrigin().z();
+        marker.pose.orientation.x = t.getRotation().x();
+        marker.pose.orientation.y = t.getRotation().y();
+        marker.pose.orientation.z = t.getRotation().z();
+        marker.pose.orientation.w = t.getRotation().w();
+        marker.scale.x = marker_scale.x();
+        marker.scale.y = marker_scale.y();
+        marker.scale.z = marker_scale.z();
+
+        // more and more red from 0 to 100
+        marker.color = color;
+        marker.id = marker_id;
+        return marker;
+    }
+
+
+    void publishMarkerMsg(const tf::Transform &marker_tf,
+                          int marker_id,
+                          const std::string &name_space,
+                          const string frame_id,
+                          ros::Publisher publisher) {
+        std_msgs::ColorRGBA c;
+        c.r = 0.0;
+        c.g = 0.0;
+        c.b = 0.0;
+        c.a = 0.7;
+        tf::Vector3 scale = tf::Vector3(0.1, 0.025, 0.025);
+        visualization_msgs::Marker marker = markerFromTransform(marker_tf, name_space, c, marker_id, frame_id, "arrow", scale);
+        publisher.publish(marker);
+    }
+}

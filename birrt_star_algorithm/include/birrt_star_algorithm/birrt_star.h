@@ -55,7 +55,7 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     //Initialize RRT* Planner (given start and goal config)
     bool init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Initialize RRT* Planner (given start config and final endeffector pose)
-    bool init_planner(vector<double> start_conf, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    bool init_planner(vector<double> start_conf, vector<double> ee_wrist_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Initialize RRT* Planner (given start and final endeffector pose)
     bool init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
 
@@ -77,6 +77,8 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     vector<double> findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, bool show_motion, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Compute IK for given endeffector goal pose (given a specific initial config)
     vector<double> findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, vector<double> mean_init_config, bool show_motion, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    vector<double> myFindIKSolution(vector<double> goal_ee_wrist_pose, vector<double> start_conf, std::map<std::string, double> extra_configuration);
+//    vector<double> myFindIKSolution2(vector<double> goal_ee_pose_wrist, vector<double> start_conf, std::map<std::string, double> extra_configuration);
 
     //Attach/Detach an given Object to the End-effector
     void attachObject(moveit_msgs::AttachedCollisionObject attached_object);
@@ -561,6 +563,34 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
 };
 
 }//end of namespace
+
+
+namespace validity_fun {
+    bool validityCallbackFn(planning_scene::PlanningScenePtr &planning_scene,
+            // const kinematics_constraint_aware::KinematicsRequest &request,
+            // kinematics_constraint_aware::KinematicsResponse &response,
+                            const robot_state::RobotStatePtr &kinematic_state,
+                            const robot_state::JointModelGroup *joint_model_group,
+                            const double *joint_group_variable_values
+            // const std::vector<double> &joint_group_variable_values
+    );
+
+}
+
+namespace utils {
+    visualization_msgs::Marker markerFromTransform(tf::Transform t,
+                                                   std::string ns,
+                                                   std_msgs::ColorRGBA color,
+                                                   int marker_id,
+                                                   std::string frame_id,
+                                                   const std::string &geometry,
+                                                   tf::Vector3 marker_scale);
+    void publishMarkerMsg(const tf::Transform &marker_tf,
+                          int marker_id,
+                          const std::string &name_space,
+                          const string frame_id,
+                          ros::Publisher publisher);
+}
 
 #endif // BiRRT_STAR_H
 
