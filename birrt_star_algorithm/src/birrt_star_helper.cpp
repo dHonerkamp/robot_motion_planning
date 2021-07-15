@@ -217,6 +217,7 @@ namespace birrthelper {
         planner_output.stats = initialised_planner.getMetrics();
         planner_output.joint_trajectory = initialised_planner.getJointTrajectory();
         planner_output.ee_trajectory = initialised_planner.getEndeffectorTrajectory();
+        planner_output.joint_names = initialised_planner.getJointNames();
 
         return planner_output;
     }
