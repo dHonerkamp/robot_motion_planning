@@ -5,10 +5,11 @@
  *      Author: Felix Burget
  */
 
+#ifndef BIRRT_STAR_H
+#define BIRRT_STAR_H
 
 // --- Includes -- 
 #include <ros/ros.h>
-#include <planner_data_structures/data_structs.h>
 #include <kuka_motion_control/control_laws.h>
 #include <validity_checker/feasibility_checker.h>
 #include <planning_heuristics/distance_heuristics.h>
@@ -18,11 +19,6 @@
 //#include <robot_interface_definition/robot_interface.h>
 
 //#include <rrt_star_algorithm/ProlateHyperspheroid.h>
-#include <omp.h>
-
-
-#ifndef BIRRT_STAR_H
-#define BIRRT_STAR_H
 
 // --Namespaces --
 using namespace std;

@@ -1,6 +1,7 @@
 //
 // Created by honerkam on 7/7/21.
 //
+#include <moveit_msgs/DisplayTrajectory.h>
 #include <birrt_star_algorithm/birrt_star_helper.h>
 
 using namespace std;

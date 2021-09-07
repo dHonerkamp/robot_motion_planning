@@ -2,6 +2,8 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <tf/transform_listener.h>
 #include <std_msgs/Float32.h>
+#include <planner_data_structures/data_structs.h>
+//#include <omp.h>
 
 namespace birrt_star_motion_planning
 {

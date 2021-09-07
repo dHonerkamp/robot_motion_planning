@@ -1,12 +1,10 @@
 // --- Includes -- 
+#ifndef PLANNING_WORLD_BUILDER_H
+#define PLANNING_WORLD_BUILDER_H
+
 #include <ros/ros.h>
 #include <kuka_motion_control/kdl_kuka_model.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
-
-
-
-#ifndef PLANNING_WORLD_BUILDER_H
-#define PLANNING_WORLD_BUILDER_H
 
 // --Namespaces --
 using namespace std;
