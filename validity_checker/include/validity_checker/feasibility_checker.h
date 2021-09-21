@@ -5,6 +5,9 @@
  *      Author: Felix Burget
  */
 
+#ifndef FEASIBILITY_CHECKER_H
+#define FEASIBILITY_CHECKER_H
+
 #include <ros/ros.h>
 #include <kdl/frames.hpp>
 #include <kdl/segment.hpp>
@@ -22,8 +25,6 @@
 #include <moveit_msgs/GetPlanningScene.h>
 #include <tf/tf.h>
 
-#ifndef FEASIBILITY_CHECKER_H
-#define FEASIBILITY_CHECKER_H
 
 // --Namespaces --
 using namespace std;

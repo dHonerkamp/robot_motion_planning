@@ -5,14 +5,13 @@
  *      Author: Felix Burget
  */
 
+#ifndef DISTANCE_HEURISTICS_H
+#define DISTANCE_HEURISTICS_H
 
 // --- Includes -- 
 #include <ros/ros.h>
 #include <kdl/chain.hpp>
 
-
-#ifndef DISTANCE_HEURISTICS_H
-#define DISTANCE_HEURISTICS_H
 
 // --Namespaces --
 using namespace std;

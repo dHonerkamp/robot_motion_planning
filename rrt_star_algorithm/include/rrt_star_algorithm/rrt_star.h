@@ -7,6 +7,9 @@
 
 
 // --- Includes --
+#ifndef RRT_STAR_H
+#define RRT_STAR_H
+
 #include <ros/ros.h>
 #include <planner_data_structures/data_structs.h>
 #include <kuka_motion_control/control_laws.h>
@@ -17,9 +20,6 @@
 #include <omp.h>
 
 #include <tf/transform_listener.h>
-
-#ifndef RRT_STAR_H
-#define RRT_STAR_H
 
 // --Namespaces --
 using namespace std;

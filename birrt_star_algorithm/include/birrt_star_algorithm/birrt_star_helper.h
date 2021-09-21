@@ -6,7 +6,6 @@
 #define BIRRT_STAR_ALGORITHM_BIRRT_STAR_HELPER_H
 
 #include <ros/ros.h>
-#include <moveit_msgs/DisplayTrajectory.h>
 #include <birrt_star_algorithm/birrt_star.h>
 
 
