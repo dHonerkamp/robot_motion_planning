@@ -105,7 +105,7 @@ catkin_package(
    INCLUDE_DIRS include
    LIBRARIES planning_world_builder
    CATKIN_DEPENDS roscpp rospy std_msgs moveit_ros_planning kuka_motion_control
-   DEPENDS system_lib
+#   DEPENDS system_lib
 )
 
 

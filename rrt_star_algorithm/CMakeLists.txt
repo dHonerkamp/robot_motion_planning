@@ -113,7 +113,7 @@ catkin_package(
    INCLUDE_DIRS include
    LIBRARIES ${PROJECT_NAME}
    CATKIN_DEPENDS roscpp rospy std_msgs kuka_motion_control moveit_ros_planning_interface planning_world_builder planning_heuristics planner_data_structures validity_checker
-   DEPENDS system_lib
+#   DEPENDS system_lib
 )
 
 

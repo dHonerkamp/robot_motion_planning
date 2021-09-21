@@ -35,7 +35,7 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES planning_scenarios
    CATKIN_DEPENDS roscpp rospy  planning_world_builder birrt_star_algorithm rrt_star_algorithm
-   DEPENDS system_lib
+#   DEPENDS system_lib
 )
 
 ###########
