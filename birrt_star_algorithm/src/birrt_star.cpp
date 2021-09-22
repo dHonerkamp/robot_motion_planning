@@ -1337,6 +1337,9 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
         msg_planner_progress.data = 100.0;
         m_pub_planning_progress.publish(msg_planner_progress);
 
+        m_time_first_solution = 0.0;
+        m_time_last_solution = 0.0;
+
         ROS_INFO_STREAM("No Planning required. Straight line connecting start and goal config in configuration space is valid.");
     }
 
