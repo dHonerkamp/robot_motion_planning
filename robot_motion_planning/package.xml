@@ -23,6 +23,6 @@
   <run_depend>vrep</run_depend>
   <run_depend>planner_statistics</run_depend>
   <run_depend>planning_scenarios</run_depend>
-  
+  <run_depend>planner_param_config</run_depend>
   
 </package>

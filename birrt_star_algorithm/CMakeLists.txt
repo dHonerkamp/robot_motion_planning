@@ -131,7 +131,7 @@ catkin_package(
    INCLUDE_DIRS include
    LIBRARIES birrt_star_algorithm
    CATKIN_DEPENDS kuka_motion_control planning_world_builder planner_data_structures validity_checker moveit_ros_planning_interface planning_heuristics roscpp rospy std_msgs #robot_interface_definition
-   DEPENDS system_lib
+#   DEPENDS system_lib
 )
 
 

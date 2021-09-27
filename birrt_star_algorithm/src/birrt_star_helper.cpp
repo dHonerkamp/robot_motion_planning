@@ -35,7 +35,7 @@ namespace birrthelper {
         ros::NodeHandle nh;
 
         vector <vector<double>> joint_trajectory = planner.getJointTrajectory();
-        vector <vector<double>> ee_trajectory = planner.getEndeffectorTrajectory();
+        // vector <vector<double>> ee_trajectory = planner.getEndeffectorTrajectory();
 
         //Get curent planning scene and robot state
         string robot_description_robot;
