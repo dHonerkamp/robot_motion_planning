@@ -1292,7 +1292,7 @@ bool BiRRTstarPlanner::run_planner(int search_space, bool flag_iter_or_time, dou
     if(flag_iter_or_time == 0)
     {
         //Init maximum permitted planner iterations
-        m_max_planner_iter = max_iter_time;
+        m_max_planner_iter = (int) max_iter_time;
     }
     else if (flag_iter_or_time == 1)
     {   //Init maximum permitted planner time
