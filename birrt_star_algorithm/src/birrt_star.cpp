@@ -373,7 +373,7 @@ InitialisationStatus BiRRTstarPlanner::_init(vector<double> ee_start_pose,
     //Check dimension of config
     if(start_conf.size() != m_num_joints || goal_conf.size() != m_num_joints) {
         ROS_ERROR("Dimension of configuration vector does not match number of joints in planning group: %i num_joints vs size %i of passed in start_conf", (int)m_num_joints, (int)start_conf.size());
-        return Failure;
+        throw std::runtime_error("Dimension of configuration vector does not match number of joints in planning group");
     }
 
     if (ee_start_pose.size() != 7){
@@ -393,11 +393,13 @@ InitialisationStatus BiRRTstarPlanner::_init(vector<double> ee_start_pose,
     bool start_conf_valid = m_FeasibilityChecker->isConfigValid(start_conf, print_contacts, extra_configuration);
     if(start_conf_valid == false){
         ROS_ERROR("Start configuration is invalid!!!");
+        throw std::runtime_error("Start configuration is invalid!!!");
         return Failure;
     }
     bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf, print_contacts, extra_configuration);
     if (goal_conf_valid == false){
         ROS_ERROR("Goal configuration is invalid!!!");
+        throw std::runtime_error("Goal configuration is invalid!!!");
         return Failure;
     }
 
@@ -413,6 +415,7 @@ InitialisationStatus BiRRTstarPlanner::_init(vector<double> ee_start_pose,
         m_cost_theoretical_solution_path = m_Heuristic.euclidean_joint_space_distance(m_manipulator_chain, start_conf, goal_conf);
     } else {
         ROS_ERROR("Requested planner search space does not exist!!!");
+        throw std::runtime_error("Requested planner search space does not exist!!!");
         return Failure;
     }
 
@@ -551,12 +554,13 @@ InitialisationStatus BiRRTstarPlanner::_init(vector<double> ee_start_pose,
     //Initialization of Variables required for Ellipse Sampling
     if(search_space == 0){ //Planning in Control Space
         //TODO Ellipse Sampling Initialization
-    }
-    else if (search_space == 1) //Planning in Joint Space
-        jointConfigEllipseInitialization();
-    else
+        throw std::runtime_error("TODO Ellipse Sampling Initialization");
+    } else if (search_space == 1) {//Planning in Joint Space
+      jointConfigEllipseInitialization();
+    } else {
         ROS_ERROR("Requested planner search space does not exist!!!");
-
+        throw std::runtime_error("Requested planner search space does not exist!!!");
+    }
     //Iteration and time when first and last solution is found
     m_first_solution_iter = 10000;
     m_last_solution_iter = 10000;
@@ -579,6 +583,7 @@ InitialisationStatus BiRRTstarPlanner::_init(vector<double> ee_start_pose,
             ROS_ERROR("%s",ex.what());
             ROS_ERROR("Transform /map to /base_link not available!");
             m_transform_map_to_base_available = false;
+            throw std::runtime_error("Transform /map to /base_link not available!");
             return Failure;
         }
     }
