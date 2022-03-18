@@ -26,6 +26,7 @@ using namespace std;
 
 namespace birrt_star_motion_planning{
 
+enum InitialisationStatus {NoGoalConfig, Success, Failure};
 
 class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
 {
@@ -45,15 +46,15 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     //bool move_base_endeffector(const Eigen::Affine3d& goal);
     //bool move_endeffector(const Eigen::Affine3d& goal);
 
-    bool _init(vector<double> ee_start_pose, vector<double> ee_goal_pose, vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration);
+    InitialisationStatus _init(vector<double> ee_start_pose, vector<double> ee_goal_pose, vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration);
     //Initialize RRT* Planner (reading start and goal config from file)
-    bool init_planner(char *start_goal_config_file, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    InitialisationStatus init_planner(char *start_goal_config_file, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Initialize RRT* Planner (given start and goal config)
-    bool init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    InitialisationStatus init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Initialize RRT* Planner (given start config and final endeffector pose)
-    bool init_planner(vector<double> start_conf, vector<double> ee_wrist_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    InitialisationStatus init_planner(vector<double> start_conf, vector<double> ee_wrist_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Initialize RRT* Planner (given start and final endeffector pose)
-    bool init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
+    InitialisationStatus init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
 
     //Initialize RRT* Planner for plannig with the real robot
     bool init_planner_map_goal_pose(const Eigen::Affine3d& goal, const vector<int> constraint_vec_goal_pose, const vector<pair<double,double> > target_coordinate_dev, const string planner_type, bool &planning_needed);
@@ -73,7 +74,7 @@ class BiRRTstarPlanner //: public robot_interface_definition::RobotInterface
     vector<double> findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, bool show_motion, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
     //Compute IK for given endeffector goal pose (given a specific initial config)
     vector<double> findIKSolution(vector<double> goal_ee_pose, vector<int> constraint_vec, vector<pair<double,double> > coordinate_dev, vector<double> mean_init_config, bool show_motion, std::map<std::string, double> extra_configuration = std::map<std::string, double>());
-    vector<double> myFindIKSolution(vector<double> goal_ee_wrist_pose, vector<double> start_conf, std::map<std::string, double> extra_configuration);
+    bool myFindIKSolution(vector<double> goal_ee_wrist_pose, vector<double> start_conf, std::map<std::string, double> extra_configuration, vector<double> &joint_values);
 //    vector<double> myFindIKSolution2(vector<double> goal_ee_pose_wrist, vector<double> start_conf, std::map<std::string, double> extra_configuration);
 
     //Attach/Detach an given Object to the End-effector

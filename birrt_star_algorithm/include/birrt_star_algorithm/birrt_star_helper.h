@@ -10,6 +10,7 @@
 
 
 struct PlannerOutput {
+    int return_code;
     map<string, double> stats;
     vector<vector<double>> joint_trajectory;
     vector<vector<double>> ee_trajectory;

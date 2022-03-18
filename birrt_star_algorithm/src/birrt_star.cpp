@@ -363,7 +363,7 @@ BiRRTstarPlanner::~BiRRTstarPlanner()
 }
 
 
-bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
+InitialisationStatus BiRRTstarPlanner::_init(vector<double> ee_start_pose,
                              vector<double> ee_goal_pose,
                              vector<double> start_conf,
                              vector<double> goal_conf,
@@ -373,7 +373,7 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
     //Check dimension of config
     if(start_conf.size() != m_num_joints || goal_conf.size() != m_num_joints) {
         ROS_ERROR("Dimension of configuration vector does not match number of joints in planning group: %i num_joints vs size %i of passed in start_conf", (int)m_num_joints, (int)start_conf.size());
-        return false;
+        return Failure;
     }
 
     if (ee_start_pose.size() != 7){
@@ -393,12 +393,12 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
     bool start_conf_valid = m_FeasibilityChecker->isConfigValid(start_conf, print_contacts, extra_configuration);
     if(start_conf_valid == false){
         ROS_ERROR("Start configuration is invalid!!!");
-        return false;
+        return Failure;
     }
     bool goal_conf_valid = m_FeasibilityChecker->isConfigValid(goal_conf, print_contacts, extra_configuration);
     if (goal_conf_valid == false){
         ROS_ERROR("Goal configuration is invalid!!!");
-        return false;
+        return Failure;
     }
 
     //Compute Heuristic for root node (either distance between start and goal config or between start and goal endeffector pose)
@@ -413,7 +413,7 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
         m_cost_theoretical_solution_path = m_Heuristic.euclidean_joint_space_distance(m_manipulator_chain, start_conf, goal_conf);
     } else {
         ROS_ERROR("Requested planner search space does not exist!!!");
-        return false;
+        return Failure;
     }
 
     //---Create Goal Node for RRT* Tree
@@ -579,15 +579,15 @@ bool BiRRTstarPlanner::_init(vector<double> ee_start_pose,
             ROS_ERROR("%s",ex.what());
             ROS_ERROR("Transform /map to /base_link not available!");
             m_transform_map_to_base_available = false;
-            return false;
+            return Failure;
         }
     }
 
-    return true;
+    return Success;
 }
 
 //Initialize RRT* Planner (reading start and goal config from file)
-bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_space, std::map<std::string, double> extra_configuration){
+InitialisationStatus BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_space, std::map<std::string, double> extra_configuration){
     //Read Start and Goal Configuration from File
     vector<double> start_conf, goal_conf;
     bool read_ok = readStartGoalConfig(start_goal_config_file, start_conf, goal_conf);
@@ -602,7 +602,7 @@ bool BiRRTstarPlanner::init_planner(char *start_goal_config_file, int search_spa
 }
 
 //Initialize RRT* Planner (given start and config)
-bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration){
+InitialisationStatus BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> goal_conf, int search_space, std::map<std::string, double> extra_configuration){
     //Convert start and goal configuration into KDL Joint Array
     KDL::JntArray start_configuration = m_RobotMotionController->Vector_to_JntArray(start_conf);
     KDL::JntArray goal_configuration = m_RobotMotionController->Vector_to_JntArray(goal_conf);
@@ -615,7 +615,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> go
 
 
 //Initialize RRT* Planner (given start config and final endeffector pose)
-bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_wrist_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
+InitialisationStatus BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee_wrist_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
     //Note: ee_goal_pose represents the end-effector goal pose with respect to the "base_link"
 
     //Find configuration for endeffector goal pose (using start_config as mean config for init_config sampling)
@@ -643,7 +643,12 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
     vector<double> ee_start_pose = computeEEPose(start_configuration);
 
 //     vector<double> goal_conf = findIKSolution(goal_ee_pose_quat_orient, constraint_vec_goal_pose, coordinate_dev, start_conf, true);
-    vector<double> goal_conf = myFindIKSolution(goal_ee_wrist_pose_quat_orient, start_conf, extra_configuration);
+    vector<double> goal_conf;
+    bool success = myFindIKSolution(goal_ee_wrist_pose_quat_orient, start_conf, extra_configuration, goal_conf);
+    if (!success){
+      return NoGoalConfig;
+    }
+
 //    vector<double> goal_conf = myFindIKSolution2(goal_ee_wrist_pose_quat_orient, start_conf, extra_configuration);
     vector<double> ee_goal_pose = computeEEPose(goal_conf);
 
@@ -652,7 +657,7 @@ bool BiRRTstarPlanner::init_planner(vector<double> start_conf, vector<double> ee
 
 
 //Initialize RRT* Planner (given start and final endeffector pose)
-bool BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
+InitialisationStatus BiRRTstarPlanner::init_planner(vector<double> ee_start_pose, vector<int> constraint_vec_start_pose, vector<double> ee_goal_pose, vector<int> constraint_vec_goal_pose, vector<pair<double,double> > coordinate_dev, int search_space, std::map<std::string, double> extra_configuration){
     //Note: ee_start_pose and ee_goal_pose represents the end-effector pose with respect to the "base_link"
 
     //Generate start and goal config
@@ -2550,9 +2555,10 @@ vector<double> BiRRTstarPlanner::computeEEPose(KDL::JntArray start_conf)
 }
 
 
-vector<double> BiRRTstarPlanner::myFindIKSolution(vector<double> goal_ee_wrist_pose,
-                                                  vector<double> start_conf,
-                                                  std::map<std::string, double> extra_configuration){
+bool BiRRTstarPlanner::myFindIKSolution(vector<double> goal_ee_wrist_pose,
+                                        vector<double> start_conf,
+                                        std::map<std::string, double> extra_configuration,
+                                        vector<double> &joint_values){
     // Only include links until r_wrist_roll_link, o/w IK won't return exact rotations
     string planning_group = "pr2_base_wrist";
 
@@ -2611,14 +2617,14 @@ vector<double> BiRRTstarPlanner::myFindIKSolution(vector<double> goal_ee_wrist_p
     ik_options.return_approximate_solution = false;
 
     const robot_state::JointModelGroup* group = state.getJointModelGroup(planning_group);
-    double kinematics_solver_timeout = 15.0;
+    double kinematics_solver_timeout = 25.0;
     // const std::string &tip = "r_wrist_roll_link";
     robot_state::RobotStatePtr state_ptr(new robot_state::RobotState(state));
     robot_state::GroupStateValidityCallbackFn constraint_callback_fn = boost::bind(&validity_fun::validityCallbackFn, scene, state_ptr, _2, _3);
 
     bool success = state.setFromIK(group, pose_const, kinematics_solver_timeout, constraint_callback_fn, ik_options);
     if (!success){
-        throw std::runtime_error("myFindIKSolution: no ik solution found");
+        ROS_INFO("myFindIKSolution: no ik solution found");
     }
 
     cout<<"success: " << success <<endl;
@@ -2635,13 +2641,12 @@ vector<double> BiRRTstarPlanner::myFindIKSolution(vector<double> goal_ee_wrist_p
 
     // get the right variables from the state
     // state.copyJointGroupPositions(group, joint_values);
-    vector<double> joint_values;
     for (int i=0; i<m_joint_names.size(); i++) {
         joint_values.push_back(state.getVariablePosition(m_joint_names[i]));
         // cout<<m_joint_names[i] << ": " << joint_values[i]<<endl;
     }
 
-    return joint_values;
+    return success;
 }
 
 

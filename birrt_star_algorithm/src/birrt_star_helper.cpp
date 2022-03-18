@@ -105,14 +105,16 @@ namespace birrthelper {
         ros::init(blub, NULL, "birrt_star_algorithm_pr2_base_arm_node_DH");
 
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
-        bool initialisation_ok = planner.init_planner(start_ee_pose,
-                                                      constraint_vec_start_pose,
-                                                      ee_goal_pose,
-                                                      constraint_vec_goal_pose,
-                                                      target_coordinate_dev,
-                                                      search_space);
-        if (!initialisation_ok){
-            return PlannerOutput();
+        birrt_star_motion_planning::InitialisationStatus initialisation_status = planner.init_planner(start_ee_pose,
+                                                                                                      constraint_vec_start_pose,
+                                                                                                      ee_goal_pose,
+                                                                                                      constraint_vec_goal_pose,
+                                                                                                      target_coordinate_dev,
+                                                                                                      search_space);
+        if (initialisation_status != birrt_star_motion_planning::Success) {
+          PlannerOutput planner_output;
+          planner_output.return_code = initialisation_status;
+          return planner_output;
         }
         return _runScenario(planner,
                             env_size_x,
@@ -144,14 +146,16 @@ namespace birrthelper {
 
         ROS_INFO("Initialising planner");
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
-        bool initialisation_ok = planner.init_planner(start_conf,
-                                                      ee_goal_pose,
-                                                      constraint_vec_goal_pose,
-                                                      target_coordinate_dev,
-                                                      search_space,
-                                                      extra_configuration);
-        if (!initialisation_ok){
-            return PlannerOutput();
+        birrt_star_motion_planning::InitialisationStatus initialisation_status = planner.init_planner(start_conf,
+                                                                                                    ee_goal_pose,
+                                                                                                    constraint_vec_goal_pose,
+                                                                                                    target_coordinate_dev,
+                                                                                                    search_space,
+                                                                                                    extra_configuration);
+        if (initialisation_status != birrt_star_motion_planning::Success) {
+            PlannerOutput planner_output;
+            planner_output.return_code = initialisation_status;
+            return planner_output;
         }
         return _runScenario(planner,
                             env_size_x,
@@ -215,6 +219,7 @@ namespace birrthelper {
         }
 
         PlannerOutput planner_output;
+        planner_output.return_code = success ? birrt_star_motion_planning::Success : birrt_star_motion_planning::Failure;
         planner_output.stats = initialised_planner.getMetrics();
         planner_output.joint_trajectory = initialised_planner.getJointTrajectory();
         planner_output.ee_trajectory = initialised_planner.getEndeffectorTrajectory();
