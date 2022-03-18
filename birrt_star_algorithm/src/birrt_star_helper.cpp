@@ -113,7 +113,7 @@ namespace birrthelper {
                                                                                                       search_space);
         if (initialisation_status != birrt_star_motion_planning::Success) {
           PlannerOutput planner_output;
-          planner_output.return_code = initialisation_status;
+          planner_output.return_code = static_cast<int>(initialisation_status);
           return planner_output;
         }
         return _runScenario(planner,
@@ -154,7 +154,7 @@ namespace birrthelper {
                                                                                                     extra_configuration);
         if (initialisation_status != birrt_star_motion_planning::Success) {
             PlannerOutput planner_output;
-            planner_output.return_code = initialisation_status;
+            planner_output.return_code = static_cast<int>(initialisation_status);
             return planner_output;
         }
         return _runScenario(planner,
@@ -219,7 +219,7 @@ namespace birrthelper {
         }
 
         PlannerOutput planner_output;
-        planner_output.return_code = success ? birrt_star_motion_planning::Success : birrt_star_motion_planning::Failure;
+        planner_output.return_code = success ? static_cast<int>(birrt_star_motion_planning::Success) : static_cast<int>(birrt_star_motion_planning::Failure);
         planner_output.stats = initialised_planner.getMetrics();
         planner_output.joint_trajectory = initialised_planner.getJointTrajectory();
         planner_output.ee_trajectory = initialised_planner.getEndeffectorTrajectory();
