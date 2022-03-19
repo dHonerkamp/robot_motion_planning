@@ -146,6 +146,7 @@ namespace birrthelper {
 
         ROS_INFO("Initialising planner");
         birrt_star_motion_planning::BiRRTstarPlanner planner(planning_group);
+        planner.setPlanningSceneInfo(env_size_x, env_size_y, "my_planning_scene", true);
         birrt_star_motion_planning::InitialisationStatus initialisation_status = planner.init_planner(start_conf,
                                                                                                     ee_goal_pose,
                                                                                                     constraint_vec_goal_pose,
